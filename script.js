@@ -386,7 +386,7 @@ async function loadProjects() {
     projectsGrid.innerHTML = ''; // Clear container
 
     try {
-        const response = await fetch('repo-cache/projects.json');
+        const response = await fetch('repo-cache/project.json');
         if (!response.ok) throw new Error('Failed to load projects list');
 
         const data = await response.json();
