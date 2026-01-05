@@ -1,0 +1,198 @@
+<h1>CNN Digit Recognition System (五碼數字辨識系統)</h1>
+<h2>專案總覽 (Project Overview)</h2>
+<p>本專案是一個基於卷積神經網路 (CNN) 的數字辨識系統，專門設計用於辨識特定格式的圖片（例如水錶或電錶的五位數讀數）。系統包含完整的訓練流程與推論展示工具。</p>
+<ul>
+<li><strong>專案用途</strong>：自動化識別含有 5 位數字的圖片。</li>
+<li><strong>解決的問題</strong>：將特定裁切範圍內的影像數據轉換為數位格式。</li>
+<li><strong>使用對象</strong>：開發者、數據分析師或自動化與 IoT 串接人員。</li>
+<li><strong>專案性質</strong>：Service / Tool (機器學習模型訓練與推論工具)。</li>
+</ul>
+<hr />
+<h2>系統架構說明 (Architecture Overview)</h2>
+<p>本系統分為「訓練 (Training)」與「推論 (Inference)」兩大階段。核心採用 TensorFlow/Keras 建立的 CNN 模型。</p>
+<h3>模組職責</h3>
+<ul>
+<li><strong>Data Preprocessing</strong>: 負責將原始大圖依據固定座標切割為 5 等份，並進行灰階化與正規化。</li>
+<li><strong>CNN Model</strong>: 卷積神經網路，負責特徵提取與數字分類 (0-9)。</li>
+<li><strong>Storage</strong>: 儲存處理後的圖片 (<code>processed_images</code>) 與訓練好的模型 (<code>.h5</code>)。</li>
+</ul>
+<h3>系統架構圖</h3>
+<pre><code class="language-mermaid">graph TD
+    subgraph Data_Preparation [資料準備與預處理]
+        Raw[原始圖片 dataset_folder] --&gt;|Split Logic| Cropped[切割圖片 processed_images]
+        Cropped --&gt;|Label Parsing| LabeledData[標註數據]
+        LabeledData --&gt;|Grayscale + Resize + Norm| Tensor[&quot;輸入張量 (28x28x1)&quot;]
+    end
+
+    subgraph Training_Core [模型訓練核心 cnn.py]
+        Tensor --&gt;|Batch Input| CNN[CNN 模型架構]
+        CNN --&gt;|Backpropagation| Weights[更新權重]
+        Weights --&gt;|Save| H5File[digit_recognition_model.h5]
+    end
+
+    subgraph Inference_Service [推論應用 testModel.py]
+        TestImg[測試圖片] --&gt;|Same Split Logic| TestSlices[切割後影像 split_images]
+        TestSlices --&gt;|Preprocess| ReadyData[預處理後影像]
+        H5File --&gt;|Load| LoadedModel[載入模型]
+        ReadyData --&gt;|Predict| LoadedModel
+        LoadedModel --&gt;|Output| FinalRes[預測結果字串]
+        LoadedModel --&gt;|Viz| Plot[Matplotlib 視覺化]
+    end
+</code></pre>
+<hr />
+<h2>系統流程說明 (System Flow)</h2>
+<h3>1. 訓練流程 (Training Pipeline) - <code>cnn.py</code></h3>
+<p>程式會讀取 <code>dataset_folder</code> 中的圖片，根據檔名解析出正確答案 (Label)，切割後即時餵入模型進行訓練。</p>
+<pre><code class="language-mermaid">flowchart TD
+    Start([啟動 cnn.py]) --&gt; Scan{掃描 dataset_folder}
+    Scan --&gt;|發現圖片| ParseName[解析檔名取得 Label]
+    ParseName --&gt; Crop[依固定座標切割為 5 張]
+    Crop --&gt; Preprocess[&quot;轉灰階 -&gt; Resize(28x28) -&gt; Normalize&quot;]
+    Preprocess --&gt; TrainStep[&quot;模型訓練 (Fit)&quot;]
+    TrainStep --&gt; Scan
+    Scan --&gt;|無更多圖片| Save[儲存模型 digit_recognition_model.h5]
+    Save --&gt; End([結束])
+</code></pre>
+<h3>2. 推論流程 (Inference Pipeline) - <code>testModel.py</code></h3>
+<p>載入已訓練的模型，對單張測試圖片進行相同的切割與處理，最後輸出五位數結果並顯示信心分數。</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant User
+    participant Script as testModel.py
+    participant Model as Loaded Model
+    participant FS as File System
+
+    User-&gt;&gt;Script: 執行程式 (指定測試圖)
+    Script-&gt;&gt;FS: 載入 digit_recognition_model.h5
+    Script-&gt;&gt;FS: 讀取測試圖片
+    Script-&gt;&gt;Script: 執行 split_image (切割成5份)
+    loop 每一個切片
+        Script-&gt;&gt;Script: 預處理 (Gray/Resize/Norm)
+        Script-&gt;&gt;Model: Predict (預測)
+        Model--&gt;&gt;Script: 回傳機率分佈
+        Script-&gt;&gt;Script: 取得最大機率數字 (Argmax)
+    end
+    Script-&gt;&gt;User: 顯示 Matplotlib 結果圖表
+    Script-&gt;&gt;User: Print 最終合併數字 (例如 &quot;12345&quot;)
+</code></pre>
+<hr />
+<h2>資料夾結構說明 (Folder Structure)</h2>
+<pre><code class="language-text">.
+├── cnn.py                      # [核心] 模型訓練腳本
+├── testModel.py                # [核心] 模型測試與推論腳本
+├── test.py                     # [工具] GPU 環境測試工具
+├── digit_recognition_model.h5  # [產出] 訓練完成的模型檔
+├── dataset_folder/             # [資料] 存放原始訓練圖片
+├── processed_images/           # [中間產物] cnn.py 執行過中產生的切割圖片
+├── split_images/               # [中間產物] testModel.py 執行時產生的測試切片
+└── README.md                   # 專案說明文件
+</code></pre>
+<hr />
+<h2>核心模組與重要檔案 (Key Modules &amp; Files)</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">檔案名稱</th>
+<th style="text-align: left;">類型</th>
+<th style="text-align: left;">職責與功能</th>
+<th style="text-align: left;">關聯模組</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>cnn.py</strong></td>
+<td style="text-align: left;">Training Script</td>
+<td style="text-align: left;">定義 CNN 架構、讀取 <code>dataset_folder</code>、執行圖片切割資料擴增、訓練並儲存模型。</td>
+<td style="text-align: left;"><code>dataset_folder</code>, <code>processed_images</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>testModel.py</strong></td>
+<td style="text-align: left;">Inference Script</td>
+<td style="text-align: left;">載入 <code>.h5</code> 模型、讀取單張圖片進行預測、使用 Matplotlib 繪製結果。</td>
+<td style="text-align: left;"><code>digit_recognition_model.h5</code>, <code>split_images</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>dataset_folder/</strong></td>
+<td style="text-align: left;">Directory</td>
+<td style="text-align: left;">放置訓練用的原始圖片。檔名格式嚴格要求：<code>前綴_時間戳_標籤數字.jpg</code> (程式會取第3部分作為 Label)。</td>
+<td style="text-align: left;">被 <code>cnn.py</code> 讀取</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>安裝與環境需求 (Installation &amp; Requirements)</h2>
+<h3>系統需求</h3>
+<ul>
+<li><strong>OS</strong>: Windows (目前環境) / Linux / macOS</li>
+<li><strong>Python Version</strong>: 3.8+</li>
+</ul>
+<h3>核心相依套件 (Dependencies)</h3>
+<p>請確保安裝以下 Python 套件：</p>
+<pre><code class="language-bash">pip install tensorflow numpy opencv-python matplotlib pillow
+</code></pre>
+<h3>環境變數</h3>
+<ul>
+<li>本專案主要依賴相對路徑，無需設定特殊環境變數。</li>
+<li>若有 GPU，<code>tensorflow</code> 會自動偵測 (可使用 <code>test.py</code> 驗證)。</li>
+</ul>
+<hr />
+<h2>使用方式 (How to Use)</h2>
+<h3>1. 準備訓練資料</h3>
+<p>將原始圖片放入 <code>dataset_folder</code> 中。
+- <strong>檔名命名規則</strong>：必須包含三個透過底線 <code>_</code> 分隔的區塊，例如 <code>DeviceA_20230101_12345.jpg</code>。
+    - 程式邏輯：<code>filename.split("_")[2]</code> 被視為正確答案 (Label string)。</p>
+<h3>2. 訓練模型</h3>
+<p>執行以下指令開始訓練：</p>
+<pre><code class="language-bash">python cnn.py
+</code></pre>
+<ul>
+<li>程式會自動切割圖片並儲存至 <code>processed_images</code>。</li>
+<li>訓練完成後會生成 <code>digit_recognition_model.h5</code>。</li>
+</ul>
+<h3>3. 執行測試 (推論)</h3>
+<p>修改 <code>testModel.py</code> 中的 <code>test_image_path</code> 變數指向你想測試的圖片，然後執行：</p>
+<pre><code class="language-bash">python testModel.py
+</code></pre>
+<ul>
+<li>將會跳出視窗顯示 5 張切割圖及其預測結果。</li>
+<li>Console 會印出最終辨識出的數字串。</li>
+</ul>
+<hr />
+<h2>設定說明 (Configuration)</h2>
+<p>本專案將設定直接寫於程式碼開頭的變數中，主要可調整項目如下：</p>
+<h3>cnn.py</h3>
+<pre><code class="language-python">input_folder = &quot;dataset_folder&quot;      # 訓練資料來源
+output_folder = &quot;processed_images&quot;   # 切割圖存檔區
+model_path = &quot;digit_recognition_model.h5&quot;
+# 切割參數 (位於 split_image 函式內)
+start, end, num_slices = 7, 83, 5    # X 軸切割起始點與份數
+</code></pre>
+<h3>testModel.py</h3>
+<pre><code class="language-python">test_image_path = &quot;...&quot;              # 指定要測試的圖片路徑
+rcParams['font.family'] = 'Microsoft JhengHei' # 圖表字型設定
+</code></pre>
+<hr />
+<h2>開發者指南 (Developer Guide)</h2>
+<h3>建議閱讀順序</h3>
+<ol>
+<li><strong><code>cnn.py</code> 圖像處理函式</strong>：理解 <code>split_image</code> 如何運作，這是資料正確性的關鍵。</li>
+<li><strong><code>cnn.py</code> 模型架構</strong>：目前的 CNN 為 2 層 Conv2D + 2 層 Dense，可視需求加深。</li>
+<li><strong><code>testModel.py</code></strong>：理解如何載入模型並對新資料進行相同的預處理。</li>
+</ol>
+<h3>修改注意事項</h3>
+<ul>
+<li><strong>切割座標 (Hardcoded Crops)</strong>：目前的切割範圍 <code>start=7, end=83</code> 是寫死的。若更換攝影機角度或圖片解析度改變，<strong>必須</strong>重新校正這些數值，否則數字會被切壞。</li>
+<li><strong>檔名依賴</strong>：訓練資料的 Label 來自檔名解析，請勿隨意更改訓練圖片的命名格式。</li>
+</ul>
+<hr />
+<h2>已知限制與待辦事項 (Limitations &amp; TODO)</h2>
+<h3>限制 (Limitations)</h3>
+<ol>
+<li><strong>固定解析度與位置</strong>：極度依賴輸入圖片的特定格式與數字位置，缺乏定位 (Localization) 機制（如 YOLO）。如果數字偏移，識別率會大幅下降。</li>
+<li><strong>訓練方式</strong>：目前採用「逐檔讀取 -&gt; 切割 -&gt; Fit」的迴路，而非標準的「準備好所有 Dataset -&gt; Model.fit」。若資料量變大，效率可能不佳。</li>
+</ol>
+<h3>待辦事項 (TODO)</h3>
+<ul>
+<li>[ ] 將切割參數 (<code>start</code>, <code>end</code>) 提取至設定檔，避免 Hardcode。</li>
+<li>[ ] 加入自動定位數字區域的功能 (由固定切割改為動態偵測)。</li>
+<li>[ ] 優化訓練 Pipeline，支援 Batch Loading 以提升訓練效率。</li>
+</ul>

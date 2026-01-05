@@ -1,0 +1,191 @@
+<h1>情緒分析系統 (Sentiment Analysis System)</h1>
+<h2>專案總覽（Project Overview）</h2>
+<p>本專案旨在解決大規模文本情緒分類的問題（正面/負面），主要用於處理 <strong>CT活動（運算思維活動）</strong> 的相關文本數據。</p>
+<p>系統透過 Python 腳本串接 LLM API（如 Gemma, Llama3, Phi-4），自動批次處理評論資料，預測其情緒傾向（0 為負面，1 為正面），並與原始標籤進行比對以計算準確率。這是一個 <strong>Tool / Analysis System</strong> 性質的專案。</p>
+<h2>系統架構說明（Architecture Overview）</h2>
+<p>本系統採用 <strong>Client-Server</strong> 架構。前端為 Python 自動化腳本，負責資料前處理、API請求與結果記錄；後端為託管於區域網路或本機的 LLM 推論服務（相容 OpenAI Chat API 格式）。</p>
+<h3>模組職責：</h3>
+<ol>
+<li><strong>Data Loader</strong>: 讀取 Excel/CSV 原始數據 (<code>pandas</code>)。</li>
+<li><strong>Processor</strong>: <ul>
+<li>建構 Prompt（提示詞工程）。</li>
+<li>批次發送 HTTP 請求至 LLM API。</li>
+<li>錯誤處理與重試機制。</li>
+</ul>
+</li>
+<li><strong>Evaluator</strong>: 比對預測結果與真實標籤 (<code>count.py</code>)。</li>
+<li><strong>LLM Service</strong>: 外部依賴，負責生成情緒判斷結果（支援 Gemma, Llama3, Phi-4 等模型）。</li>
+</ol>
+<pre><code class="language-mermaid">graph TD
+    subgraph &quot;Client Side (Local Machine)&quot;
+        Input[(&quot;Input Data\n(.xlsx / .csv)&quot;)]
+        Script[&quot;Analysis Script\n(Python)&quot;]
+        Tokenizer[&quot;Tokenizer / Preprocessor\n(llama-cpp / pandas)&quot;]
+        Output[(&quot;Output Results\n(results.csv)&quot;)]
+        Input --&gt; Tokenizer
+        Tokenizer --&gt; Script
+        Script --&gt; Output
+    end
+
+    subgraph &quot;Server Side (LLM API)&quot;
+        API_Endpoint[&quot;API Endpoint\n(/v1/chat/completions)&quot;]
+        Model[&quot;LLM Engine\n(Gemma / Llama3 / Phi-4)&quot;]
+        API_Endpoint &lt;--&gt; Model
+    end
+
+    Script -- &quot;POST Request (JSON)&quot; --&gt; API_Endpoint
+    API_Endpoint -- &quot;Response (Sentiment)&quot; --&gt; Script
+</code></pre>
+<h2>系統流程說明（System Flow）</h2>
+<p>以下流程描述系統如何處理單一批次的文字資料。</p>
+<ol>
+<li><strong>初始化</strong>：設定 API URL、模型名稱、輸入/輸出檔案路徑。</li>
+<li><strong>斷點續傳檢查</strong>：檢查輸出檔案是否存在，若存在則從上次中斷處繼續。</li>
+<li><strong>資料預處理</strong>：讀取 Excel，計算 Token 長度（Version 1）。</li>
+<li><strong>批次處理迴圈</strong>：<ul>
+<li>將資料分塊（Chunking）。</li>
+<li>逐筆建構 Prompt。</li>
+<li>呼叫 LLM API 進行推論。</li>
+<li>解析 JSON 回傳值 (0 或 1)。</li>
+<li>寫入 CSV 結果檔。</li>
+<li>即時計算當前準確率。</li>
+</ul>
+</li>
+</ol>
+<pre><code class="language-mermaid">flowchart TD
+    Start([開始 Start]) --&gt; Init[初始化參數 &amp; 檢查斷點]
+    Init --&gt; ReadData[讀取輸入資料 Excel]
+    ReadData --&gt; LoopStart{還有未處理的區塊?}
+
+    LoopStart -- Yes --&gt; ChunkData[取出下一個區塊]
+    ChunkData --&gt; RowLoop{遍歷區塊內每一列}
+
+    RowLoop -- Yes --&gt; GenPrompt[建構 Prompt]
+    GenPrompt --&gt; CallAPI[呼叫 LLM API]
+    CallAPI --&gt; CheckRes{API 回應成功?}
+
+    CheckRes -- No --&gt; LogError[記錄錯誤至 CSV]
+    CheckRes -- Yes --&gt; ParseJSON[解析 JSON 取得 0/1]
+    ParseJSON --&gt; SaveRow[暫存結果]
+    LogError --&gt; RowLoop
+    SaveRow --&gt; RowLoop
+
+    RowLoop -- No --&gt; WriteFile[寫入 results.csv]
+    WriteFile --&gt; CalcAcc[計算並顯示目前準確率]
+    CalcAcc --&gt; LoopStart
+
+    LoopStart -- No --&gt; End([結束 End])
+</code></pre>
+<h2>資料夾結構說明（Folder Structure）</h2>
+<pre><code>Kapibala/
+├── CT活動_文字情緒_全LSTM_1/       # [Version 1] 包含本地 Token 計算邏輯的版本
+│   ├── gemma-2-27b-it/           # Gemma 模型專用執行目錄
+│   ├── CT活動_文字情緒_全LSTM.xlsx # 原始資料集
+│   └── ...
+├── CT活動_文字情緒_全LSTM_2/       # [Version 2] 簡化版，支援多模型，直接使用英文資料
+│   ├── gemma-2-27b-it/           # Gemma 模型實驗目錄
+│   ├── llama3_70B/               # Llama3 模型實驗目錄
+│   ├── phi-4/                    # Phi-4 模型實驗目錄
+│   ├── CT_Dataset2.xlsx          # 原始資料集 (V2)
+│   └── CT_Dataset2_translated.xlsx # 翻譯後資料集
+├── tool/                         # 共用工具與資料集
+│   ├── tool.py                   # IMDB 資料下載與轉檔工具
+│   └── imdb_reviews.csv          # 下載後的 IMDB 資料集
+└── ...
+</code></pre>
+<h2>核心模組與重要檔案（Key Modules &amp; Files）</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">檔案路徑 (範例)</th>
+<th style="text-align: left;">模組/檔案</th>
+<th style="text-align: left;">功能職責</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>*/gemma-2-27b-it.py</code></td>
+<td style="text-align: left;"><strong>主執行腳本</strong></td>
+<td style="text-align: left;">負責主要的 ETL 流程、API 互動與錯誤處理。</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>*/count.py</code></td>
+<td style="text-align: left;"><strong>統計模組</strong></td>
+<td style="text-align: left;">用於讀取 CSV 結果檔，計算並輸出當前的分類準確率 (Accuracy)。</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>tool/tool.py</code></td>
+<td style="text-align: left;"><strong>資料工具</strong></td>
+<td style="text-align: left;">使用 <code>keras.datasets</code> 下載 IMDB 數據並轉換為 CSV 格式供模型訓練或測試使用。</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>CT_Dataset*.xlsx</code></td>
+<td style="text-align: left;"><strong>資料源</strong></td>
+<td style="text-align: left;">包含 <code>review</code> (評論內容) 與 <code>label</code> (情緒標籤) 的輸入資料。</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>results.csv</code></td>
+<td style="text-align: left;"><strong>輸出檔案</strong></td>
+<td style="text-align: left;">程式執行後生成的結果，包含 <code>預測情緒</code>, <code>準確性</code>, <code>標籤</code>, <code>評論</code>。</td>
+</tr>
+</tbody>
+</table>
+<h2>安裝與環境需求（Installation &amp; Requirements）</h2>
+<h3>系統需求</h3>
+<ul>
+<li>Windows / Linux / macOS</li>
+<li>Python 3.8+</li>
+<li>可存取的 LLM API 服務 (如 LM Studio 架設的 Local Server)</li>
+</ul>
+<h3>相依套件</h3>
+<p>本專案依賴以下 Python 套件，請使用 pip 安裝：</p>
+<pre><code class="language-bash">pip install pandas requests openpyxl
+</code></pre>
+<p><em>註：若使用 Version 1 的本地 Token 計算功能，需額外安裝 <code>llama-cpp-python</code>。</em></p>
+<h2>使用方式（How to Use）</h2>
+<h3>1. 準備環境</h3>
+<p>確認 LLM API 服務已啟動並可供連線（預設為 <code>http://210.240.194.41:1234/v1/chat/completions</code>）。</p>
+<h3>2. 執行分析</h3>
+<p>進入對應模型的資料夾（以 Version 2 Gemma 為例）並執行 Python 腳本：</p>
+<pre><code class="language-bash">cd CT活動_文字情緒_全LSTM_2/gemma-2-27b-it
+python gemma-2-27b-it.py
+</code></pre>
+<h3>3. 查看結果</h3>
+<p>程式執行過程中會即時在 Terminal 顯示當前區塊的進度與準確率。執行完成後，結果保存在同目錄下的 <code>results.csv</code>。</p>
+<h2>設定說明（Configuration）</h2>
+<p>主要設定位於 Python 腳本 (<code>gemma-2-27b-it.py</code>) 的 <code>if __name__ == "__main__":</code> 區塊中，可直接修改程式碼進行調整：</p>
+<ul>
+<li><strong>API 設定</strong>：</li>
+<li><code>api_url</code>: LLM API 的完整 URL。</li>
+<li><code>model</code>: 呼叫 API 時指定的模型名稱 (如 <code>"gemma-2-27b-it"</code>)。</li>
+<li><strong>檔案路徑</strong>：</li>
+<li><code>input_file</code>: 輸入的 Excel 檔案路徑。</li>
+<li><code>output_file</code>: 輸出結果 CSV 檔名。</li>
+<li><strong>執行參數</strong>：</li>
+<li><code>chunk_size</code>: 每次批次處理的資料筆數（預設 10）。</li>
+<li><code>prompt</code>: 位於迴圈內的 Prompt 模板，可修改以調整 AI 指令。</li>
+</ul>
+<h2>開發者指南（Developer Guide）</h2>
+<ol>
+<li><strong>新增模型支援</strong>：複製現有的模型資料夾（如 <code>gemma-2-27b-it</code>），重新命名資料夾，並修改 <code>.py</code> 檔中的 <code>model</code> 變數即可。</li>
+<li><strong>修改 Prompt</strong>：在主迴圈中的 <code>prompt</code> 變數定義了給 AI 的指令。若需改變分析邏輯（如增加中立情緒），請修此處及 <code>analyze_sentiment</code> 中的解析邏輯。</li>
+<li><strong>錯誤處理</strong>：所有 API 錯誤或解析失敗會被記錄在 <code>prediction_failures.csv</code>，建議定期檢查此檔案以優化 Prompt 或系統穩定性。</li>
+</ol>
+<h2>已知限制與待辦事項（Limitations &amp; TODO）</h2>
+<ul>
+<li><strong>限制</strong>：</li>
+<li>目前僅支援二元分類（0/1），對於中立或複雜情緒無法精確表達。</li>
+<li>依賴外部 API 的穩定性，若 API 逾時或斷線會導致單筆資料失敗（但有記錄機制）。</li>
+<li>Token 計算邏輯在 Version 2 中被移除，若輸入文本過長可能會被截斷或導致 API 錯誤。</li>
+<li><strong>TODO</strong>：</li>
+<li>[ ] 將 API URL 與模型參數抽離至獨立的 <code>config.json</code> 設定檔，避免硬編碼。</li>
+<li>[ ] 實作多執行緒 (Multi-threading) 請求以提升處理速度。</li>
+<li>[ ] 統一 Version 1 與 Version 2 的程式邏輯。</li>
+</ul>
+<h2>補充說明（Notes）</h2>
+<ul>
+<li><strong>Version 1 vs Version 2</strong>：</li>
+<li>Version 1 包含 <code>llama_cpp</code> 本地 Token 計算，適合對 Context Window 控制較嚴格的場景。</li>
+<li>Version 2 架構較簡單，直接依賴 API 處理，且資料夾結構已針對多模型實驗進行優化。</li>
+<li><strong>工具腳本</strong>：<code>tool/tool.py</code> 是一個獨立的工具，用於從 Keras 下載 IMDB 數據集，與主情緒分析流程無直接依賴關係，但可用於準備測試數據。</li>
+</ul>

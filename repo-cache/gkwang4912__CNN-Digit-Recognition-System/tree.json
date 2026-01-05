@@ -1,0 +1,108 @@
+{
+  "type": "dir",
+  "name": "",
+  "children": [
+    {
+      "type": "dir",
+      "name": "dataset_folder",
+      "children": [
+        {
+          "type": "file",
+          "name": "20250219_075132_29545.jpg"
+        },
+        {
+          "type": "file",
+          "name": "20250219_075133_38930.jpg"
+        },
+        {
+          "type": "file",
+          "name": "20250219_075148_38378.jpg"
+        },
+        {
+          "type": "file",
+          "name": "20250219_075156_19660.jpg"
+        },
+        {
+          "type": "file",
+          "name": "20250219_075538_76590.jpg"
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "processed_images",
+      "children": [
+        {
+          "type": "file",
+          "name": "0_20250219_075132_2.jpg"
+        },
+        {
+          "type": "file",
+          "name": "0_20250219_075133_3.jpg"
+        },
+        {
+          "type": "file",
+          "name": "0_20250219_075148_3.jpg"
+        },
+        {
+          "type": "file",
+          "name": "0_20250219_075156_1.jpg"
+        },
+        {
+          "type": "file",
+          "name": "0_20250219_075538_7.jpg"
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "split_images",
+      "children": [
+        {
+          "type": "file",
+          "name": "0_20250219_082720_9.jpg"
+        },
+        {
+          "type": "file",
+          "name": "1_20250219_082720_7.jpg"
+        },
+        {
+          "type": "file",
+          "name": "2_20250219_082720_9.jpg"
+        },
+        {
+          "type": "file",
+          "name": "3_20250219_082720_1.jpg"
+        },
+        {
+          "type": "file",
+          "name": "4_20250219_082720_9.jpg"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "20250219_082720_97919.jpg"
+    },
+    {
+      "type": "file",
+      "name": "cnn.py"
+    },
+    {
+      "type": "file",
+      "name": "digit_recognition_model.h5"
+    },
+    {
+      "type": "file",
+      "name": "README.md"
+    },
+    {
+      "type": "file",
+      "name": "test.py"
+    },
+    {
+      "type": "file",
+      "name": "testModel.py"
+    }
+  ]
+}

@@ -1,0 +1,186 @@
+<h1>README.md</h1>
+<h2>1. 專案總覽 (Project Overview)</h2>
+<p><strong>AI Gym Coach Pro</strong> 是一個基於網頁的即時健身動作偵測與輔助應用程式。
+本專案利用電腦視覺技術（Computer Vision），透過使用者的一般視訊鏡頭（Webcam）即時分析使用者的健身動作（目前專注於啞鈴彎舉 Dumbbell Curls），並提供與專業教練相似的即時數據回饋。</p>
+<ul>
+<li><strong>解決問題</strong>：提供居家健身者即時的動作標準度檢測、次數計算與速度監控，避免因動作不標準受傷或訓練效率低落。</li>
+<li><strong>目標用戶</strong>：居家健身愛好者、需要自動化計數的健身人士。</li>
+<li><strong>專案類型</strong>：Web Application (Browser-based Client + Python Backend)。</li>
+</ul>
+<h2>2. 專案架構總覽 (Architecture Overview)</h2>
+<p>本專案採用 Client-Server 架構，透過 WebSocket 進行高頻率的雙向影像與數據傳輸。</p>
+<h3>高層次架構</h3>
+<ol>
+<li>
+<p><strong>前端 (Client)</strong>：</p>
+<ul>
+<li>負責擷取使用者視訊鏡頭影像（Webcam）。</li>
+<li>將影像縮小並轉碼為 Base64 字串，透過 WebSocket (<code>socket.io</code>) 發送至後端。</li>
+<li>接收後端處理後的「骨架疊加影像」與「分析數據（角度、次數、速度）」。</li>
+<li>即時更新儀表板 UI。</li>
+</ul>
+</li>
+<li>
+<p><strong>後端 (Server)</strong>：</p>
+<ul>
+<li>基於 Flask 與 Flask-SocketIO 運行。</li>
+<li>接收影像後，使用 <strong>MediaPipe Pose</strong> 模型進行人體骨架關鍵點偵測。</li>
+<li><strong>邏輯運算核心</strong>：計算手肘角度、判斷動作階段（舉起/放下）、計算動作速度。</li>
+<li>將繪製好骨架的影像與 JSON 格式的統計數據回傳給前端。</li>
+</ul>
+</li>
+</ol>
+<h3>資料流 (Data Flow)</h3>
+<ol>
+<li><strong>Input</strong>: Browser Webcam Capture -&gt; Canvas Context -&gt; Base64 JPEG.</li>
+<li><strong>Transport</strong>: Socket.IO (<code>process_frame</code> event).</li>
+<li><strong>Process</strong>: Python <code>cv2</code> decode -&gt; <code>mediapipe</code> inference -&gt; State Machine Update -&gt; <code>cv2</code> draw.</li>
+<li><strong>Output</strong>: Base64 processed image + JSON Stats -&gt; Socket.IO (<code>response</code> event) -&gt; Update Browser DOM &amp; Canvas.</li>
+</ol>
+<h2>3. 資料夾結構說明 (Folder Structure)</h2>
+<pre><code class="language-text">.
+├── templates/
+│   └── index.html      # 前端單頁應用程式入口，包含所有的 HTML/CSS/JS
+├── requirements.txt    # Python 相依套件清單
+└── web_app.py          # 後端主程式，包含 API、Socket 服務與影像處理邏輯
+</code></pre>
+<ul>
+<li><strong><code>templates/</code></strong>: 存放 Flask 的 Jinja2 樣板檔案，目前僅有一個 <code>index.html</code> 作為主要介面。</li>
+<li><strong><code>web_app.py</code></strong>: 專案的核心入口點，負責啟動 Web Server 與處理所有核心業務邏輯。</li>
+<li><strong><code>requirements.txt</code></strong>: 定義專案運行所需的 Python 函式庫版本。</li>
+</ul>
+<h2>4. 核心模組與重要檔案說明 (Key Modules &amp; Files)</h2>
+<h3><code>web_app.py</code></h3>
+<p>後端核心檔案，職責如下：
+- <strong>Flask Server 初始化</strong>: 設定 Web Server 與 WebSocket (<code>Flask-SocketIO</code>)。
+- <strong><code>handle_frame(data)</code></strong>: 
+    - WebSocket 事件處理函式。
+    - 負責解碼圖片、呼叫 MediaPipe、計算運動幾何（角度）、更新計數器狀態。
+    - 實作「過快警示」與「動作範圍（ROM）」判斷邏輯。
+- <strong><code>calculate_angle(a, b, c)</code></strong>: 
+    - 計算三點（肩膀、手肘、手腕）之間的夾角，用於判斷手臂彎曲程度。
+- <strong>全域變數 <code>hands</code></strong>: 
+    - 儲存左手與右手目前的狀態（次數、是否在頂點、速度計算用的時間戳記）。</p>
+<h3><code>templates/index.html</code></h3>
+<p>前端單一整合檔案，職責如下：
+- <strong>UI 呈現</strong>: 
+    - 使用 CSS Grid 佈局，包含霓虹風格（Neon Style）與掃描線特效（Scanline Effect）。
+    - 顯示左右手的即時數據卡片（Reps, Angle, Speed）。
+- <strong>影像擷取邏輯</strong>: 
+    - 使用 <code>navigator.mediaDevices.getUserMedia</code> 取得權限。
+    - 透過 <code>Canvas</code> 進行影像鏡像翻轉（Mirroring）處理。
+- <strong>傳輸控制</strong>: 
+    - 使用 <code>setInterval</code> 以約 12 FPS (80ms) 的頻率發送影像至後端，平衡即時性與頻寬。</p>
+<h2>5. 安裝與環境需求 (Installation &amp; Requirements)</h2>
+<h3>系統需求</h3>
+<ul>
+<li><strong>OS</strong>: Windows / macOS / Linux (開發環境為 Windows)。</li>
+<li><strong>Python</strong>: 建議 Python 3.8 ~ 3.10。</li>
+<li><strong>硬體</strong>: 必須連接 Webcam。</li>
+</ul>
+<h3>相依套件</h3>
+<p>請見 <code>requirements.txt</code>，主要包含：
+- <code>flask</code>, <code>flask-socketio</code>: Web 框架與 WebSocket 支援。
+- <code>opencv-python</code>: 影像處理。
+- <code>mediapipe</code>: 骨架偵測模型。
+- <code>protobuf&lt;4.0.0</code>: <strong>重要</strong>，MediaPipe 對 Protobuf 版本有特定限制。
+- <code>eventlet</code>: 用於 SocketIO 的非同步網路庫。</p>
+<h3>安裝指令</h3>
+<pre><code class="language-bash">pip install -r requirements.txt
+</code></pre>
+<h2>6. 使用方式 (How to Use)</h2>
+<h3>1. 啟動伺服器</h3>
+<p>在專案根目錄執行：</p>
+<pre><code class="language-bash">python web_app.py
+</code></pre>
+<p>成功啟動後，終端機將顯示：<code>啟動 Web AI Gym Coach on port 5001...</code></p>
+<h3>2. 開啟應用程式</h3>
+<ol>
+<li>開啟瀏覽器（建議 Chrome 或 Edge）。</li>
+<li>前往 <code>http://localhost:5001 /</code> 或 <code>http://127.0.0.1:5001</code>。</li>
+<li>瀏覽器會詢問「使用相機權限」，請點選「允許」。</li>
+</ol>
+<h3>3. 開始運動</h3>
+<ol>
+<li>站在距離鏡頭約 1.5 ~ 2 公尺處，確保上半身與手臂完整入鏡。</li>
+<li>系統會自動偵測並在畫面上繪製骨架。</li>
+<li>開始做「啞鈴彎舉」動作：<ul>
+<li>手臂放下（角度 &gt; 140度）。</li>
+<li>手臂舉起（角度 &lt; 130度，且手腕高於鼻子水平線）。</li>
+</ul>
+</li>
+<li>介面將即時更新次數、速度與動作建議（如 "Too Fast!", "Too Low!"）。</li>
+</ol>
+<h2>7. 設定說明 (Configuration)</h2>
+<p>目前專案採 <strong>Code-First Configuration</strong>，設定值直接定義於 <code>web_app.py</code> 頂部常數中：</p>
+<ul>
+<li><strong>動作門檻值</strong>:<ul>
+<li><code>ARM_UP_ANGLE = 140</code>: 手臂伸直的角度判定點。</li>
+<li><code>ARM_DOWN_ANGLE = 130</code>: 手臂彎曲的角度判定點。</li>
+<li><strong>注意</strong>: 程式碼邏輯中，變數命名可能與直觀相反（UP/DOWN 對應角度數值），需參考 <code>calculate_angle</code> 的回傳值。</li>
+</ul>
+</li>
+<li><strong>速度限制</strong>:<ul>
+<li><code>SPEED_LIMIT = 1.8</code>: 若動作速度數值超過此值，會觸發 "太快!" 警告。</li>
+</ul>
+</li>
+<li><strong>字型設定</strong>:<ul>
+<li><code>FONT_CANDIDATES</code>: 支援 <code>msjh.ttc</code> (微軟正黑體) 等，若找不到會自動 fallback 到預設字型。</li>
+</ul>
+</li>
+<li><strong>連線設定</strong>:<ul>
+<li>預設 Port: <code>5001</code></li>
+<li>預設 Host: <code>0.0.0.0</code> (允許區網連線)</li>
+</ul>
+</li>
+</ul>
+<h2>8. 開發者指南 (Developer Guide)</h2>
+<h3>給新人的建議</h3>
+<ol>
+<li><strong>鏡像問題</strong>: <ul>
+<li>前端在 <code>ctx.scale(-1, 1)</code> 做了鏡像翻轉顯示給使用者看。</li>
+<li>傳給後端的影像也是鏡像後的。</li>
+<li>後端 MediaPipe 偵測到的 <code>Left</code> 實際上是使用者的「左手」（因為是鏡像），但若沒有鏡像，通常畫面左邊是使用者的右手。請注意左右手標籤在 UI 上的對應。</li>
+</ul>
+</li>
+<li><strong>字型路徑</strong>:<ul>
+<li><code>web_app.py</code> 中寫死了一些 Windows 常見字型路徑 (<code>C:\Windows\Fonts</code>)。若在 Linux docker 中部署，中文顯示可能會失效，需確認字型檔存在或修改路徑。</li>
+</ul>
+</li>
+</ol>
+<h3>常見修正建議</h3>
+<ul>
+<li>若要調整判定嚴格度，請修改 <code>web_app.py</code> 第 48-50 行的 <code>ANGLE</code> 常數。</li>
+<li>若要修改前端 UI 更新頻率，請修改 <code>index.html</code> 第 362 行的 <code>80</code> (毫秒)。</li>
+</ul>
+<h2>9. 已知限制與待辦事項 (Limitations &amp; TODO)</h2>
+<h3>已知限制 (Confirmed Limitations)</h3>
+<ol>
+<li><strong>狀態並發問題 (Concurrency Issue)</strong>:<ul>
+<li><strong>嚴重</strong>: 後端使用全域變數 <code>hands</code> (<code>global hands</code>, line 65) 儲存運動狀態。</li>
+<li><strong>影響</strong>: 若同時有多個瀏覽器開啟網頁，所有人的動作會混雜計算在同一個變數中，導致計數亂跳。</li>
+<li><strong>解法</strong>: 需將狀態改為 <code>session</code> based 或以 <code>socket.id</code> 為 key 的字典來隔離不同使用者。</li>
+</ul>
+</li>
+<li><strong>效能瓶頸</strong>:<ul>
+<li>每一幀圖片都經過 Base64 編碼/解碼並透過 WebSocket 傳輸，頻寬消耗極大且延遲較高。</li>
+<li>較好的做法是：前端僅傳送 Landmarks 或後端僅回傳數據，影像由前端自行繪製。</li>
+</ul>
+</li>
+<li><strong>依賴版本</strong>:<ul>
+<li><code>metrics</code> 計算依賴 <code>time.time()</code>，若系統時間跳變可能導致速度計算異常（出現極大值）。</li>
+</ul>
+</li>
+</ol>
+<h3>TODO / FIXME</h3>
+<ul>
+<li><strong>FIXME</strong>: 將全域 <code>hands</code> 變數重構為 Session-scoped 變數，支援多人同時使用。</li>
+<li><strong>TODO</strong>: 將硬編碼的參數（角度、Port、速度限制）移至 <code>.env</code> 或獨立 config 檔。</li>
+<li><strong>TODO</strong>: 前端 <code>video</code> 元素目前是 <code>opacity: 0</code> 隱藏，僅用 Canvas 繪圖，可考慮 WebGL 優化渲染效能。</li>
+<li><strong>尚未實作</strong>: <code>cv2_add_chinese_text</code> 雖然有定義，但在主要繪圖邏輯中大部分被註解或只使用英文 (OpenCV <code>putText</code> / <code>line</code>)，目前中文回饋主要依賴前端 DOM 顯示。</li>
+</ul>
+<h2>10. 補充說明 (Notes)</h2>
+<ul>
+<li><strong>環境變數</strong>: 程式碼中強制設定了 <code>os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"</code> (Line 4)，這是為了解決某些版本 protobuf 與 mediapipe 的相容性崩潰問題，<strong>請勿移除</strong>。</li>
+<li><strong>中文字型</strong>: 程式碼嘗試載入系統中文字型，主要是為了在 OpenCV 圖片上壓上中文浮水印，但目前主要資訊回饋已移至 HTML UI 層，圖片上的文字非必要功能。</li>
+</ul>

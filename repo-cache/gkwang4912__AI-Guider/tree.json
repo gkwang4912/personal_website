@@ -1,0 +1,90 @@
+{
+  "type": "dir",
+  "name": "",
+  "children": [
+    {
+      "type": "dir",
+      "name": "\"backend",
+      "children": [
+        {
+          "type": "file",
+          "name": "\\346\\214\\207\\344\\273\\244.txt\""
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "backend",
+      "children": [
+        {
+          "type": "dir",
+          "name": "__pycache__",
+          "children": [
+            {
+              "type": "file",
+              "name": "gemini_chat.cpython-310.pyc"
+            },
+            {
+              "type": "file",
+              "name": "xtts_v2.cpython-310.pyc"
+            }
+          ]
+        },
+        {
+          "type": "file",
+          "name": "api_keys.json"
+        },
+        {
+          "type": "file",
+          "name": "config.json"
+        },
+        {
+          "type": "file",
+          "name": "gemini_chat.py"
+        },
+        {
+          "type": "file",
+          "name": "Morgan Freeman.wav"
+        },
+        {
+          "type": "file",
+          "name": "requirements.txt"
+        },
+        {
+          "type": "file",
+          "name": "server.py"
+        },
+        {
+          "type": "file",
+          "name": "xtts_v2.py"
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "frontend",
+      "children": [
+        {
+          "type": "file",
+          "name": "app.js"
+        },
+        {
+          "type": "file",
+          "name": "index.html"
+        },
+        {
+          "type": "file",
+          "name": "sora_loop.mp4"
+        },
+        {
+          "type": "file",
+          "name": "styles.css"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "README.md"
+    }
+  ]
+}

@@ -1,0 +1,188 @@
+<h1>Musical Emotion Analysis Project</h1>
+<h2>專案總覽（Project Overview）</h2>
+<p>本專案是一個音樂特徵提取與視覺化工具，旨在分析音訊檔案的情感相關特徵。
+專案分為兩個主要階段：特徵提取與資料視覺化。
+- <strong>用途</strong>：自動化提取音訊的數值特徵（MFCC, Chroma, Spectral Contrast）並生成對應的統計圖表。
+- <strong>解決的問題</strong>：將非結構化的音訊數據轉換為可分析的結構化 CSV 數據，並提供視覺化圖表以輔助分析。
+- <strong>使用對象</strong>：資料科學家、音樂情感分析研究人員。
+- <strong>專案性質</strong>：Analysis Tool / Script Collection</p>
+<h2>系統架構說明（Architecture Overview）</h2>
+<p>本系統由兩個獨立的 Python 腳本組成，透過 CSV 檔案進行資料傳遞。<code>1_抓取特徵</code> 負責處理原始音訊，<code>2_視覺化</code> 負責讀取處理後的數據並繪圖。</p>
+<h3>系統架構圖</h3>
+<pre><code class="language-mermaid">graph TD
+    subgraph &quot;Phase 1: Feature Extraction&quot;
+        AudioFiles[&quot;Audio Files&lt;br/&gt;(wav, mp3, etc.)&quot;] --&gt;|Input| Extractor[get_features.py]
+        Extractor --&gt;|Process| Librosa[Librosa Library]
+        Librosa --&gt;|Return Features| Extractor
+        Extractor --&gt;|Write| CSV[batch_audio_features.csv]
+    end
+
+    subgraph &quot;Phase 2: Visualization&quot;
+        CSV --&gt;|Read| Visualizer[image.py]
+        Visualizer --&gt;|Generate| Plots[&quot;Feature Plots&lt;br/&gt;(Bar Charts)&quot;]
+        Visualizer --&gt;|Save| OutputDir[audio_feature_plots/]
+    end
+</code></pre>
+<h2>系統流程說明（System Flow）</h2>
+<p>系統執行流程依序分為「特徵提取」與「視覺化」兩個步驟。</p>
+<h3>主要處理流程</h3>
+<pre><code class="language-mermaid">flowchart TD
+    Start([Start]) --&gt; Step1_Start
+
+    subgraph &quot;Step 1: Feature Extraction (get_features.py)&quot;
+        Step1_Start[Scan '音檔' Folder] --&gt; CheckExt{Valid Extension?}
+        CheckExt -- Yes --&gt; LoadAudio[&quot;Load Audio&lt;br/&gt;(Max 30s)&quot;]
+        CheckExt -- No --&gt; SkipFile[Skip File]
+        LoadAudio --&gt; CalcMFCC[&quot;Calculate MFCC&lt;br/&gt;(Mean of 13 dims)&quot;]
+        CalcMFCC --&gt; CalcChroma[&quot;Calculate Chroma&lt;br/&gt;(Mean of 12 dims)&quot;]
+        CalcChroma --&gt; CalcContrast[&quot;Calculate Spectral Contrast&lt;br/&gt;(Mean of 7 dims)&quot;]
+        CalcContrast --&gt; Aggregate[Aggregate Features]
+        Aggregate --&gt; WriteCSV[Save to batch_audio_features.csv]
+    end
+
+    WriteCSV --&gt; Step2_Start
+
+    subgraph &quot;Step 2: Visualization (image.py)&quot;
+        Step2_Start[Read batch_audio_features.csv] --&gt; CreateDir[Create 'audio_feature_plots' dir]
+        CreateDir --&gt; LoopRows{For Each Song}
+        LoopRows -- Next Row --&gt; CreateSubDir[Create Song Subdirectory]
+        CreateSubDir --&gt; PlotMFCC[Generate MFCC Bar Chart]
+        PlotMFCC --&gt; PlotChroma[Generate Chroma Bar Chart]
+        PlotChroma --&gt; PlotContrast[Generate Spectral Contrast Bar Chart]
+        PlotContrast --&gt; SaveImages[Save .png Files]
+        SaveImages --&gt; LoopRows
+        LoopRows -- Done --&gt; End([End])
+    end
+</code></pre>
+<h2>資料夾結構說明（Folder Structure）</h2>
+<pre><code>Musical-Emotion/
+├── 1_抓取特徵/               # 第一階段：特徵提取模組
+│   ├── get_features.py      # 主要特徵提取腳本
+│   ├── batch_audio_features.csv # 輸出的特徵數據 (CSV)
+│   └── 音檔/                 #存放原始音訊檔案的目錄 (Input)
+├── 2_視覺化/                 # 第二階段：資料視覺化模組
+│   ├── image.py             # 視覺化繪圖腳本
+│   ├── batch_audio_features.csv # 需將提取的 CSV 複製至此或直接讀取
+│   └── audio_feature_plots/ # 輸出的圖表結果目錄 (Output)
+└── README.md                # 專案說明文件
+</code></pre>
+<h3>模組關係圖</h3>
+<pre><code class="language-mermaid">classDiagram
+    class FeatureExtractor {
+        +Input: Audio Files
+        +Output: CSV File
+        +Library: librosa
+        +Function: extract_mfcc()
+        +Function: extract_chroma()
+        +Function: extract_spectral_contrast()
+    }
+
+    class Visualizer {
+        +Input: CSV File
+        +Output: PNG Images
+        +Library: matplotlib
+        +Function: plot_mfcc()
+        +Function: plot_chroma()
+        +Function: plot_contrast()
+    }
+
+    class DataStore {
+        +File: batch_audio_features.csv
+        +Columns: Filename, MFCC1-13, Chroma1-12, Contrast1-7
+    }
+
+    FeatureExtractor --&gt; DataStore : Writes
+    Visualizer &lt;-- DataStore : Reads
+</code></pre>
+<h2>核心模組與重要檔案（Key Modules &amp; Files）</h2>
+<h3>1. <code>1_抓取特徵/get_features.py</code></h3>
+<ul>
+<li><strong>職責</strong>：批量讀取音訊檔案，提取聲學特徵，並將結果儲存為 CSV。</li>
+<li><strong>關鍵邏輯</strong>：<ul>
+<li>使用 <code>librosa.load</code> 讀取前 30 秒音訊。</li>
+<li>計算特徵的平均值（Mean）以代表整首曲目。</li>
+<li>處理異常並略過錯誤檔案。</li>
+</ul>
+</li>
+</ul>
+<h3>2. <code>2_視覺化/image.py</code></h3>
+<ul>
+<li><strong>職責</strong>：讀取特徵 CSV，為每一首曲目生成獨立的特徵分佈圖。</li>
+<li><strong>產出</strong>：<ul>
+<li>每首歌一個獨立資料夾。</li>
+<li>包含 <code>mfcc.png</code>, <code>chroma.png</code>, <code>contrast.png</code> 三張圖表。</li>
+</ul>
+</li>
+</ul>
+<h2>安裝與環境需求（Installation &amp; Requirements）</h2>
+<h3>系統需求</h3>
+<ul>
+<li>Windows / macOS / Linux</li>
+<li>Python 3.x</li>
+</ul>
+<h3>相依套件</h3>
+<p>請確保安裝以下 Python 套件：</p>
+<pre><code class="language-bash">pip install librosa numpy pandas matplotlib
+</code></pre>
+<p><em>(注意：<code>librosa</code> 依賴 <code>ffmpeg</code> 進行音訊解碼，請確保系統環境中有安裝 ffmpeg)</em></p>
+<h2>使用方式（How to Use）</h2>
+<h3>步驟 1：準備音檔與提取特徵</h3>
+<ol>
+<li>將音訊檔案（.wav, .mp3 等）放入 <code>1_抓取特徵/音檔/</code> 資料夾中。</li>
+<li>執行特徵提取腳本：
+   <code>bash
+   cd 1_抓取特徵
+   python get_features.py</code></li>
+<li>執行完畢後，會檢查目錄下是否生成 <code>batch_audio_features.csv</code>。</li>
+</ol>
+<h3>步驟 2：生成視覺化圖表</h3>
+<ol>
+<li>確保 <code>batch_audio_features.csv</code> 存在（若腳本在不同目錄執行，需確認路徑）。</li>
+<li>執行視覺化腳本：
+   <code>bash
+   cd ../2_視覺化
+   python image.py</code></li>
+<li>查看 <code>2_視覺化/audio_feature_plots/</code> 目錄下的結果。</li>
+</ol>
+<h2>設定說明（Configuration）</h2>
+<p>目前的設定直接寫在程式碼（Hardcoded）中，若需修改請直接編輯 Python 檔案：</p>
+<ul>
+<li><strong><code>get_features.py</code></strong>:</li>
+<li><code>audio_folder = '音檔'</code>: 修改輸入資料夾名稱。</li>
+<li><code>duration=30</code>: <code>librosa.load</code> 的參數，預設僅讀取前 30 秒。</li>
+<li>
+<p><code>audio_extensions</code>: 定義支援的副檔名。</p>
+</li>
+<li>
+<p><strong><code>image.py</code></strong>:</p>
+</li>
+<li><code>output_root = "audio_feature_plots"</code>: 修改輸出圖片的根目錄名稱。</li>
+</ul>
+<h2>開發者指南（Developer Guide）</h2>
+<ul>
+<li><strong>擴充建議</strong>：<ul>
+<li>若要新增特徵（如 Zero Crossing Rate），請在 <code>get_features.py</code> 的特徵提取區塊新增計算邏輯，並同步更新 DataFrame 的欄位定義。</li>
+<li>若要修改圖表樣式，請編輯 <code>image.py</code> 中的 <code>plt</code> 相關設定。</li>
+</ul>
+</li>
+</ul>
+<h2>已知限制與待辦事項（Limitations &amp; TODO）</h2>
+<ul>
+<li><strong>限制</strong>：<ul>
+<li>音訊讀取長度固定為 30 秒 (<code>duration=30</code>)，無法完整分析長曲目。</li>
+<li>特徵僅計算平均值 (<code>np.mean</code>)，遺失了時間序列上的變化資訊。</li>
+<li>路徑設定多為相對路徑，執行時需注意當前工作目錄（CWD）。</li>
+</ul>
+</li>
+<li><strong>TODO</strong>：<ul>
+<li>[ ] 將參數（如資料夾路徑、時間長度）提取為設定檔或命令列參數。</li>
+<li>[ ] 支援時間序列特徵的圖表繪製（不僅僅是平均值）。</li>
+<li>[ ] 增加錯誤處理日誌（Logging）。</li>
+</ul>
+</li>
+</ul>
+<h2>補充說明（Notes）</h2>
+<ul>
+<li><code>get_features.py</code> 產生的 CSV 檔案包含檔名與所有數值特徵，可用於後續的機器學習模型訓練。</li>
+<li><code>image.py</code> 依賴 <code>batch_audio_features.csv</code> 的欄位名稱（如 <code>MFCC1</code>, <code>Chroma1</code> 等），修改提取腳本時需保持欄位名稱一致。</li>
+</ul>

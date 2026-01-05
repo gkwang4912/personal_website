@@ -1,0 +1,235 @@
+<h1>國立臺中教育大學學生會官網整合專案 (NTCU Student Association Integration Project)</h1>
+<h2>專案總覽 (Project Overview)</h2>
+<p>本專案整合了國立臺中教育大學學生會的官方網站前端展示與後端資料分析工具。主要用途為提供學生校園資訊、特約商店查詢，並具備針對學生言論進行情緒分析與關鍵字視覺化的後端工具。</p>
+<ul>
+<li><strong>解決的問題</strong>：整合分散的公告資訊、提供直觀的特約商店地圖、自動化分析學生意見回饋（言論自由牆）。</li>
+<li><strong>使用對象</strong>：全校師生（前端）、學生會幹部與工程師（後端分析工具）。</li>
+<li><strong>專案性質</strong>：混合型專案，包含靜態網站 (Web Client) 與 本機 Python 自動化工具 (Local Automation Tools)。</li>
+</ul>
+<h2>系統架構說明 (Architecture Overview)</h2>
+<p>本系統分為「前端展示層」與「後端分析層」。</p>
+<ul>
+<li><strong>前端展示層</strong>：由純 HTML/CSS/JS 構成，直接部署於靜態伺服器。資料面透過 JSONP 與 iframe 技術，直接與 Google Sheets 和 Google Maps 串接，不依賴傳統後端資料庫，降低維護成本。</li>
+<li><strong>後端分析層</strong>：由 Python 腳本組成的本機工具箱。針對 Excel 格式的原始資料進行處理，並串接 Google Gemini API 進行 AI 情緒判讀，或使用 Jieba 進行斷詞生成文字雲。</li>
+</ul>
+<pre><code class="language-mermaid">graph TD
+    User[&quot;使用者 (Browser)&quot;]
+    Admin[&quot;管理者 (Local)&quot;]
+
+    subgraph Frontend [前端展示系統]
+        Main[&quot;Main_page (官網入口)&quot;]
+        Affiliate[&quot;特約 (特約店家子站)&quot;]
+        NewsJS[&quot;news.js (公告邏輯)&quot;]
+    end
+
+    subgraph External [雲端服務]
+        GSheet[&quot;Google Sheets (資料庫/CMS)&quot;]
+        GMap[&quot;Google Maps (地圖服務)&quot;]
+        Gemini[&quot;Google Gemini API (AI 模型)&quot;]
+    end
+
+    subgraph LocalBackend [本機資料分析工具]
+        EmotionPy[&quot;emotion_analyzer.py (情緒分析)&quot;]
+        CloudPy[&quot;wordcloud_generator.py (文字雲生成)&quot;]
+        RawData[Excel 原始資料]
+        ResultData[分析結果 / 圖片]
+    end
+
+    User --&gt; Main
+    User --&gt; Affiliate
+    Main --&gt; NewsJS
+    NewsJS --JSONP 請求--&gt; GSheet
+    Affiliate --Iframe 嵌入--&gt; GSheet
+    Affiliate --Iframe 嵌入--&gt; GMap
+
+    Admin --&gt; RawData
+    RawData --&gt; EmotionPy
+    RawData --&gt; CloudPy
+
+    EmotionPy --API 請求--&gt; Gemini
+    Gemini --回傳分析--&gt; EmotionPy
+    EmotionPy --&gt; ResultData
+
+    CloudPy --&gt; ResultData
+</code></pre>
+<h2>系統流程說明 (System Flow)</h2>
+<h3>1. 前端公告載入流程</h3>
+<p>網站採用 Client-Side Rendering (CSR) 模式載入公告，利用 Google Sheets 作為輕量級 CMS。</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant User as 使用者
+    participant Browser as 瀏覽器
+    participant JS as news.js
+    participant GSheet as Google Sheets API
+
+    User-&gt;&gt;Browser: 開啟 index.html
+    Browser-&gt;&gt;JS: 載入 news.js
+    JS-&gt;&gt;JS: 定義 JSONP Callback
+    JS-&gt;&gt;GSheet: 發送 Script Tag 請求 (GET)
+    GSheet--&gt;&gt;JS: 回傳 JavaScript (包含 JSON 資料)
+    JS-&gt;&gt;JS: 執行 Callback 解析資料
+    JS-&gt;&gt;JS: 轉換資料格式 (Date, Title, Link)
+    JS-&gt;&gt;Browser: 動態生成 HTML 插入 DOM
+    Browser--&gt;&gt;User: 顯示最新公告
+</code></pre>
+<h3>2. 情緒分析工具執行流程</h3>
+<p>管理者在本地端執行 Python 腳本進行輿情分析。</p>
+<pre><code class="language-mermaid">flowchart TD
+    Start[開始] --&gt; LoadConfig[讀取 api.json 設定]
+    LoadConfig --&gt; ScanFiles[掃描目錄下 .xlsx 檔案]
+    ScanFiles --&gt; Check{有檔案?}
+    Check --無--&gt; End[結束]
+    Check --有--&gt; ReadExcel[讀取 Excel 內容]
+
+    ReadExcel --&gt; DetectCol[自動偵測文字欄位]
+    DetectCol --&gt; LoopRow{逐行處理}
+
+    LoopRow --API請求--&gt; Gemini[Gemini AI]
+    Gemini --回傳 1/0/-1--&gt; SaveResult[暫存結果]
+    SaveResult --&gt; LoopRow
+
+    LoopRow --全部完成--&gt; GenReport[生成統計報告 .txt]
+    GenReport --&gt; End
+</code></pre>
+<h2>資料夾結構說明 (Folder Structure)</h2>
+<pre><code class="language-text">Web/SA/
+├── README.md               # 本文件
+├── Main_page/              # [前端] 官網主系統
+│   ├── css/                # 樣式表
+│   ├── img/                # 圖片資源
+│   ├── js/                 # 腳本邏輯
+│   │   └── news.js         # 核心公告載入邏輯
+│   ├── index.html          # 首頁
+│   ├── all_news.html       # 所有公告頁
+│   ├── news_detail.html    # 公告詳情頁
+│   └── calendar.html       # 行事曆頁
+│
+├── 特約/                   # [前端] 特約店家獨立子頁面
+│   ├── SA_food.html        # 特約店家首頁
+│   ├── script.js           # 簡單的導覽列互動邏輯
+│   └── styles.css          # 特約頁面專屬樣式
+│
+└── 言論自由牆/             # [後端] 資料分析專案
+    ├── code/
+    │   ├── 情緒分類/       # 情緒分析模組
+    │   │   ├── emotion_analyzer.py  # 主程式
+    │   │   └── api.json             # API 金鑰設定 (需自行建立)
+    │   └── 文字雲/         # 文字雲模組
+    │       ├── wordcloud_generator.py # 主程式
+    │       └── stopwords.txt          # 停用詞庫
+    ├── file/               # 原始資料存放區
+    └── result/             # 分析結果產出區
+</code></pre>
+<h2>核心模組與重要檔案 (Key Modules &amp; Files)</h2>
+<h3>前端核心</h3>
+<ul>
+<li><strong><code>Main_page/js/news.js</code></strong>: </li>
+<li><strong>職責</strong>: 負責與 Google Sheets 溝通。</li>
+<li><strong>機制</strong>: 使用 JSONP 避開跨域 (CORS) 限制，將試算表資料轉換為網頁公告。</li>
+<li>
+<p><strong>重要變數</strong>: <code>SHEET_ID</code> (指向資料來源試算表)。</p>
+</li>
+<li>
+<p><strong><code>Main_page/index.html</code></strong>:</p>
+</li>
+<li><strong>職責</strong>: 網站入口，包含 Hero Section、最新公告區塊、行事曆嵌入。</li>
+</ul>
+<h3>後端核心 (Python)</h3>
+<ul>
+<li><strong><code>emotion_analyzer.py</code></strong>:</li>
+<li><strong>職責</strong>: 讀取 Excel，呼叫 Google Gemini API 判斷文本情緒 (正向/中性/負向)。</li>
+<li>
+<p><strong>特性</strong>: 具備斷點續傳、自動重試 (Retry) 機制、由 api.json 讀取金鑰。</p>
+</li>
+<li>
+<p><strong><code>wordcloud_generator.py</code></strong>:</p>
+</li>
+<li><strong>職責</strong>: 使用 <code>jieba</code> 進行中文斷詞，移除停用詞後，繪製高解析度文字雲圖片。</li>
+<li><strong>特性</strong>: 支援自訂停用詞、自動偵測目錄下 Excel 檔。</li>
+</ul>
+<h2>安裝與環境需求 (Installation &amp; Requirements)</h2>
+<h3>1. 網站前端</h3>
+<ul>
+<li><strong>需求</strong>: 任意現代瀏覽器 (Chrome, Edge, Safari)。</li>
+<li><strong>啟動</strong>: 直接雙擊開啟 <code>.html</code> 檔案，或使用 Live Server 預覽。</li>
+</ul>
+<h3>2. Python 分析工具</h3>
+<ul>
+<li><strong>語言版本</strong>: Python 3.8+</li>
+<li><strong>必要套件</strong>:
+  <code>bash
+  pip install pandas requests openpyxl jieba wordcloud matplotlib numpy pillow</code></li>
+<li><strong>環境變數</strong>: 需在 <code>言論自由牆/code/情緒分類/</code> 目錄下建立 <code>api.json</code>：
+  <code>json
+  {
+      "api_key": "YOUR_GEMINI_API_KEY"
+  }</code></li>
+</ul>
+<h2>使用方式 (How to Use)</h2>
+<h3>瀏覽網站</h3>
+<ol>
+<li>進入 <code>Main_page</code> 資料夾。</li>
+<li>開啟 <code>index.html</code> 即可瀏覽首頁。</li>
+<li>公告資料會自動從 Google Sheets 載入（需連網）。</li>
+</ol>
+<h3>執行情緒分析</h3>
+<ol>
+<li>將含有文字資料的 <code>.xlsx</code> 檔案放入 <code>言論自由牆/code/情緒分類/</code> 資料夾。</li>
+<li>確認 <code>api.json</code> 已設定。</li>
+<li>開啟終端機 (Terminal) 切換至該目錄。</li>
+<li>執行指令：
+   <code>bash
+   python emotion_analyzer.py</code></li>
+<li>程式會自動分析並產生 <code>_情緒分析結果.xlsx</code> 與 <code>_統計報告.txt</code>。</li>
+</ol>
+<h3>產生文字雲</h3>
+<ol>
+<li>將 <code>.xlsx</code> 檔案放入 <code>言論自由牆/code/文字雲/</code> 資料夾。</li>
+<li>執行指令：
+   <code>bash
+   python wordcloud_generator.py</code></li>
+<li>程式將輸出 <code>_文字雲.png</code> 圖片檔。</li>
+</ol>
+<h2>設定說明 (Configuration)</h2>
+<table>
+<thead>
+<tr>
+<th>設定檔</th>
+<th>位置</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>api.json</strong></td>
+<td><code>code/情緒分類/</code></td>
+<td>儲存 Google Gemini API Key，格式為 JSON。</td>
+</tr>
+<tr>
+<td><strong>stopwords.txt</strong></td>
+<td><code>code/文字雲/</code></td>
+<td>定義文字雲排除詞彙（如：的、了、是），一行一詞。</td>
+</tr>
+<tr>
+<td><strong>SHEET_ID</strong></td>
+<td><code>Main_page/js/news.js</code></td>
+<td>第 6 行，指定公告資料來源的 Google Sheet ID。</td>
+</tr>
+</tbody>
+</table>
+<h2>開發者指南 (Developer Guide)</h2>
+<ol>
+<li><strong>修改公告來源</strong>: 若要更換公告試算表，請確保新試算表權限開啟為「知道連結者皆可檢視」，並更新 <code>news.js</code> 中的 <code>SHEET_ID</code>。</li>
+<li><strong>擴充 AI 模型</strong>: 在 <code>emotion_analyzer.py</code> 中可修改 <code>self.current_model</code> 變數來切換不同版本的 Gemini 模型 (如 pro/flash)。</li>
+<li><strong>文字雲字體</strong>: <code>wordcloud_generator.py</code> 預設使用 Windows 系統字體 (<code>msjh.ttc</code>)，若在 Mac/Linux 執行需修改字體路徑。</li>
+</ol>
+<h2>已知限制與待辦事項 (Limitations &amp; TODO)</h2>
+<ul>
+<li><strong>[LIMITATION] CORS</strong>: 前端使用 JSONP 抓取 Google Sheets 資料是較舊的技術，未來若 Google 停用相關 API 可能失效，建議遷移至 Google Apps Script 或正式後端。</li>
+<li><strong>[LIMITATION] API Quota</strong>: 免費版 Gemini API 有每分鐘請求限制，大量資料分析時程式會自動暫停等待，處理速度較慢。</li>
+<li><strong>[TODO]</strong>: <code>特約</code> 頁面的 Google Map 目前為空 iframe，需填入實際 <code>src</code> 連結。</li>
+<li><strong>[TODO]</strong>: <code>all_news.html</code> 的分頁功能尚未實作，目前會列出所有資料。</li>
+</ul>
+<h2>補充說明 (Notes)</h2>
+<ul>
+<li>系統中的 <code>小詠</code>、<code>大詠</code> 為校內宿舍名稱，可能會在 AI 分析時被誤判，提示詞中已加入相關背景知識修正。</li>
+</ul>

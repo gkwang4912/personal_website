@@ -1,0 +1,180 @@
+{
+  "type": "dir",
+  "name": "",
+  "children": [
+    {
+      "type": "dir",
+      "name": "\"\\347\\211\\271\\347\\264\\204",
+      "children": [
+        {
+          "type": "file",
+          "name": "SA_food.html\""
+        },
+        {
+          "type": "file",
+          "name": "script.js\""
+        },
+        {
+          "type": "file",
+          "name": "styles.css\""
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "\"\\350\\250\\200\\350\\253\\226\\350\\207\\252\\347\\224\\261\\347\\211\\206",
+      "children": [
+        {
+          "type": "dir",
+          "name": "code",
+          "children": [
+            {
+              "type": "dir",
+              "name": "\\346\\203\\205\\347\\267\\222\\345\\210\\206\\351\\241\\236",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "api.json\""
+                },
+                {
+                  "type": "file",
+                  "name": "emotion_analyzer.py\""
+                }
+              ]
+            },
+            {
+              "type": "dir",
+              "name": "\\346\\226\\207\\345\\255\\227\\351\\233\\262",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "stopwords.txt\""
+                },
+                {
+                  "type": "file",
+                  "name": "wordcloud_generator.py\""
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "dir",
+          "name": "file",
+          "children": [
+            {
+              "type": "file",
+              "name": "20250908.xlsx\""
+            },
+            {
+              "type": "file",
+              "name": "20251021.xlsx\""
+            }
+          ]
+        },
+        {
+          "type": "dir",
+          "name": "result",
+          "children": [
+            {
+              "type": "dir",
+              "name": "20250908",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "20250908_\\346\\203\\205\\347\\267\\222\\345\\210\\206\\346\\236\\220\\347\\265\\220\\346\\236\\234.xlsx\""
+                },
+                {
+                  "type": "file",
+                  "name": "20250908_\\346\\226\\207\\345\\255\\227\\351\\233\\262.png\""
+                },
+                {
+                  "type": "file",
+                  "name": "20250908_\\347\\265\\261\\350\\250\\210\\345\\240\\261\\345\\221\\212.txt\""
+                }
+              ]
+            },
+            {
+              "type": "dir",
+              "name": "20251021",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "20251021_\\346\\203\\205\\347\\267\\222\\345\\210\\206\\346\\236\\220\\347\\265\\220\\346\\236\\234.xlsx\""
+                },
+                {
+                  "type": "file",
+                  "name": "20251021_\\346\\226\\207\\345\\255\\227\\351\\233\\262.png\""
+                },
+                {
+                  "type": "file",
+                  "name": "20251021_\\347\\265\\261\\350\\250\\210\\345\\240\\261\\345\\221\\212.txt\""
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "\"Main_page",
+      "children": [
+        {
+          "type": "dir",
+          "name": "img",
+          "children": [
+            {
+              "type": "file",
+              "name": "\\345\\255\\270\\347\\224\\237\\346\\234\\203\\346\\234\\203\\345\\276\\275.png\""
+            },
+            {
+              "type": "file",
+              "name": "\\345\\260\\217\\346\\262\\271\\345\\235\\221\\351\\242\\250\\346\\231\\257\\347\\205\\247\\345\\216\\237\\347\\250\\277.jpg\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "Main_page",
+      "children": [
+        {
+          "type": "dir",
+          "name": "js",
+          "children": [
+            {
+              "type": "file",
+              "name": "news.js"
+            }
+          ]
+        },
+        {
+          "type": "file",
+          "name": "all_news.html"
+        },
+        {
+          "type": "file",
+          "name": "calendar.html"
+        },
+        {
+          "type": "file",
+          "name": "index.css"
+        },
+        {
+          "type": "file",
+          "name": "index.html"
+        },
+        {
+          "type": "file",
+          "name": "news_detail.html"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "README.md"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "type": "dir",
+  "name": "",
+  "children": [
+    {
+      "type": "dir",
+      "name": "MusicLDM",
+      "children": [
+        {
+          "type": "file",
+          "name": "MusicLDM.txt"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "add_noise.py"
+    },
+    {
+      "type": "file",
+      "name": "denoise.py"
+    },
+    {
+      "type": "file",
+      "name": "process_video.py"
+    },
+    {
+      "type": "file",
+      "name": "README.md"
+    }
+  ]
+}

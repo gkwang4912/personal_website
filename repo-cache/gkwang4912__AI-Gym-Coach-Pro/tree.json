@@ -1,0 +1,28 @@
+{
+  "type": "dir",
+  "name": "",
+  "children": [
+    {
+      "type": "dir",
+      "name": "templates",
+      "children": [
+        {
+          "type": "file",
+          "name": "index.html"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "README.md"
+    },
+    {
+      "type": "file",
+      "name": "requirements.txt"
+    },
+    {
+      "type": "file",
+      "name": "web_app.py"
+    }
+  ]
+}

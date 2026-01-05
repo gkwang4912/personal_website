@@ -1,0 +1,264 @@
+<h1>Multimodal Video Analysis and RAG Retrieval System</h1>
+<h2>專案總覽 (Project Overview)</h2>
+<p>本專案是一個整合 <strong>多模態影片分析 (Multimodal Video Analysis)</strong> 與 <strong>檢索增強生成 (RAG, Retrieval-Augmented Generation)</strong> 的智慧問答系統。</p>
+<ul>
+<li><strong>專案用途</strong>: 自動化處理長影片，提取關鍵視覺與聽覺資訊，並允許使用者透過自然語言進行內容檢索與問答。</li>
+<li><strong>解決的問題</strong>: 解決傳統影片搜尋僅能針對標題或標籤，無法深入影片內容（如特定對話、畫面細節）進行精確檢索的問題。</li>
+<li><strong>使用對象</strong>: 需快速檢索大量影片內容的研究人員、媒體工作者或檔案管理員。</li>
+<li><strong>專案性質</strong>: Full-stack Application (Python Backend Services + Flask Web App).</li>
+</ul>
+<hr />
+<h2>系統架構說明 (Architecture Overview)</h2>
+<p>本系統採用模組化設計，分為 <strong>資料處理管線 (Data Pipeline)</strong> 與 <strong>應用服務層 (Application Layer)</strong>。</p>
+<ul>
+<li><strong>資料處理管線</strong>: 負責非同步處理影片，包含電腦視覺分析 (TransNetV2, YOLOv8) 與語音轉錄 (Whisper)。</li>
+<li><strong>向量資料庫</strong>: 使用 FAISS 儲存 High-dimensional Embeddings (CLIP)，SQLite 儲存 Metadata。</li>
+<li><strong>應用服務</strong>: Flask 提供 RESTful API 與 Web UI，整合 LM Studio 進行大型語言模型推論。</li>
+</ul>
+<pre><code class="language-mermaid">graph TD
+    User[&quot;使用者 (Browser)&quot;] &lt;--&gt; WebUI[&quot;Web Interface (Flask)&quot;]
+
+    subgraph &quot;Application Layer&quot;
+        WebUI &lt;--&gt; Server[server.py]
+        Server &lt;--&gt; QueryEngine[rag_query.py]
+    end
+
+    subgraph &quot;Data Storage&quot;
+        QueryEngine &lt;--&gt; FAISS[(&quot;FAISS Index&quot;)]
+        QueryEngine &lt;--&gt; SQLite[(&quot;SQLite Metadata&quot;)]
+    end
+
+    subgraph &quot;External AI Services&quot;
+        QueryEngine &lt;--&gt; LMStudio[&quot;LM Studio API&quot;]
+        DataPipeline --&gt; CLIP[&quot;CLIP Processor&quot;]
+    end
+
+    subgraph &quot;Data Processing Pipeline (Offline)&quot;
+        VideoFile[&quot;Video File (.mp4)&quot;] --&gt; Stage1[&quot;1. Visual Analysis&quot;]
+        VideoFile --&gt; Stage2[&quot;2. Audio Transcription&quot;]
+        Stage1 &amp; Stage2 --&gt; Stage3[&quot;3. Alignment &amp; Screenshot&quot;]
+        Stage3 --&gt; Stage5[&quot;5. RAG Ingestion&quot;]
+        Stage5 --&gt; FAISS
+        Stage5 --&gt; SQLite
+    end
+</code></pre>
+<hr />
+<h2>系統流程說明 (System Flow)</h2>
+<p>系統運作分為 <strong>離線建立索引 (Indexing Phase)</strong> 與 <strong>線上檢索 (Query Phase)</strong> 兩大階段。</p>
+<h3>1. 離線處理流程 (Indexing)</h3>
+<pre><code class="language-mermaid">flowchart LR
+    Start[&quot;Input Video&quot;] --&gt; A[analyze.py]
+    Start --&gt; B[transcribe.py]
+
+    subgraph &quot;Visual Analysis&quot;
+    A --&gt;|TransNetV2| Scenes[&quot;Scene Cuts&quot;]
+    A --&gt;|YOLOv8| Objects[&quot;Object Events&quot;]
+    end
+
+    subgraph &quot;Audio Analysis&quot;
+    B --&gt;|Whisper| Text[&quot;Transcript CSV&quot;]
+    end
+
+    Scenes &amp; Objects &amp; Text --&gt; C[extract_screenshots.py]
+    C --&gt;|Time Mapping| D[&quot;Aligned Captions &amp; Images&quot;]
+
+    D --&gt; E[rag_ingest.py]
+    E --&gt;|CLIP Encoding| F[&quot;Vector DB (FAISS) + Metadata (SQLite)&quot;]
+</code></pre>
+<h3>2. 線上檢索流程 (Query)</h3>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant User
+    participant WebUI
+    participant Server
+    participant DB as FAISS/SQLite
+    participant LLM as LM Studio
+
+    User-&gt;&gt;WebUI: 輸入問題 (e.g., &quot;太空人在做什麼?&quot;)
+    WebUI-&gt;&gt;Server: POST /api/chat
+    Server-&gt;&gt;DB: 1. 搜尋相關文字 (Text Embeddings)
+    Server-&gt;&gt;DB: 2. 搜尋相關圖片 (Image Embeddings)
+    DB--&gt;&gt;Server: 返回 Top-K 文字與圖片路徑
+    Server-&gt;&gt;LLM: 3. 建構 Prompt (包含問題 + 檢索到的上下文 + 圖片)
+    LLM--&gt;&gt;Server: 生成回答
+    Server--&gt;&gt;WebUI: 返回 JSON (Answer + Source Metadata)
+    WebUI--&gt;&gt;User: 顯示回答與參考畫面
+</code></pre>
+<hr />
+<h2>資料夾結構說明 (Folder Structure)</h2>
+<pre><code>Project Root
+├── 1_關鍵偵擷取/              # [視覺模組] 影片切割與物件偵測
+│   ├── analyze.py           # 主程式：整合 TransNetV2 與 YOLOv8
+│   ├── TransNetV2/          # (依賴) 場景偵測模型
+│   └── keyframes/           # (產出) 偵測到的關鍵影格圖片
+│
+├── 2_逐字稿擷取/              # [語音模組] 影片轉文字
+│   ├── transcribe.py        # 主程式：呼叫 OpenAI Whisper
+│   └── transcript.csv       # (產出) 包含時間戳記的逐字稿
+│
+├── 3_逐字稿圖片擷取/          # [整合模組] 圖文對齊
+│   ├── extract_screenshots.py # 主程式：依據 transcript 時間擷取圖片
+│   └── screenshots/         # (產出) 對應每一句對話的截圖
+│
+├── 5_RAG_database/          # [檢索模組] RAG 核心與網頁伺服器
+│   ├── input/               # [資料源] 需手動匯集前述步驟的產出至此
+│   ├── rag_ingest.py        # 建置程式：讀取 input/ 建立向量索引
+│   ├── rag_query.py         # 檢索核心：負責搜尋 FAISS 與呼叫 LLM
+│   ├── server.py            # 網頁後端：Flask Entry Point
+│   ├── static/              # 前端靜態資源 (CSS, JS)
+│   ├── templates/           # 前端 HTML 樣板
+│   ├── rag_mm.db            # (產出) SQLite 資料庫
+│   └── *.index              # (產出) FAISS 向量索引檔
+│
+└── README.md                # 專案說明文件
+</code></pre>
+<hr />
+<h2>核心模組與重要檔案 (Key Modules &amp; Files)</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">檔案名稱</th>
+<th style="text-align: left;">所屬模組</th>
+<th style="text-align: left;">職責 (Responsibility)</th>
+<th style="text-align: left;">依賴關係</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>analyze.py</strong></td>
+<td style="text-align: left;">關鍵偵擷取</td>
+<td style="text-align: left;">執行 TransNetV2 偵測場景切換，執行 YOLOv8 追蹤物件。輸出 CSV 報告與關鍵影格。</td>
+<td style="text-align: left;"><code>tensorflow</code>, <code>ultralytics</code>, <code>ffmpeg-python</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>transcribe.py</strong></td>
+<td style="text-align: left;">逐字稿擷取</td>
+<td style="text-align: left;">載入 Whisper 模型將音訊轉為帶時間戳的文字。</td>
+<td style="text-align: left;"><code>openai-whisper</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>extract_screenshots.py</strong></td>
+<td style="text-align: left;">整合模組</td>
+<td style="text-align: left;">讀取 <code>transcript.csv</code>，利用 OpenCV 依據 <code>Start/End Time</code> 從影片截圖。</td>
+<td style="text-align: left;"><code>opencv-python</code>, <code>pandas</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>rag_ingest.py</strong></td>
+<td style="text-align: left;">RAG 資料庫</td>
+<td style="text-align: left;">讀取圖像與文字，使用 CLIP 模型計算 Embeddings，寫入 FAISS 與 SQLite。</td>
+<td style="text-align: left;"><code>transformers</code>, <code>faiss-cpu</code>, <code>torch</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>rag_query.py</strong></td>
+<td style="text-align: left;">RAG 資料庫</td>
+<td style="text-align: left;">提供 <code>query_rag_api</code> 函數。執行向量相似度搜尋，並封裝 Context 發送給 LM Studio。</td>
+<td style="text-align: left;"><code>openai</code>, <code>faiss-cpu</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>server.py</strong></td>
+<td style="text-align: left;">Web 介面</td>
+<td style="text-align: left;">Flask Server，提供 API Endpoints 與渲染前端頁面。</td>
+<td style="text-align: left;"><code>flask</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>安裝與環境需求 (Installation &amp; Requirements)</h2>
+<h3>系統需求</h3>
+<ul>
+<li><strong>OS</strong>: Windows 10/11 (本專案路徑結構基於 Windows)</li>
+<li><strong>Python</strong>: 3.8 ~ 3.10</li>
+<li><strong>GPU (Optional)</strong>: 強烈建議使用 NVIDIA GPU 加速 Whisper 與 Embedding 計算。</li>
+</ul>
+<h3>外部依賴</h3>
+<ol>
+<li><strong>FFmpeg</strong>: 必須安裝並加入系統 PATH。</li>
+<li><strong>LM Studio</strong>: 必須安裝並運行 Local Inference Server。<ul>
+<li><strong>Model</strong>: 建議使用 Vision-Language Model (如 <code>Qwen2-VL</code>, <code>LLaVA</code>)。</li>
+<li><strong>Port</strong>: 預設 <code>1234</code>。</li>
+</ul>
+</li>
+</ol>
+<h3>Python 套件安裝</h3>
+<pre><code class="language-bash">pip install -r requirements.txt
+# 或手動安裝核心套件：
+pip install openai-whisper ultralytics opencv-python pandas numpy tqdm flask faiss-cpu transformers torch pillow ffmpeg-python openai
+</code></pre>
+<p><em>(註: 若使用 GPU，請將 <code>faiss-cpu</code> 替換為 <code>faiss-gpu</code>，並安裝對應 CUDA 版本的 PyTorch)</em></p>
+<hr />
+<h2>使用方式 (How to Use)</h2>
+<p>本系統設計為<strong>依序執行 (Sequential Execution)</strong>。假設您的來源影片為 <code>test.mp4</code>。</p>
+<h3>Phase 1: 資料前處理 (Data Preprocessing)</h3>
+<ol>
+<li><strong>視覺分析</strong>:
+    <code>bash
+    cd 1_關鍵偵擷取
+    # 放入 test.mp4
+    python analyze.py test.mp4</code></li>
+<li><strong>語音轉錄</strong>:
+    <code>bash
+    cd ../2_逐字稿擷取
+    # 放入/參照 test.mp4
+    python transcribe.py</code></li>
+<li><strong>圖文對齊</strong>:
+    <code>bash
+    cd ../3_逐字稿圖片擷取
+    # 需有 test.mp4 與 transcript.csv
+    python extract_screenshots.py</code></li>
+</ol>
+<h3>Phase 2: RAG 系統建置 (RAG Setup)</h3>
+<ol>
+<li><strong>資料彙整</strong>:<ul>
+<li>將步驟 1 產出的 <code>keyframes/</code> 圖片</li>
+<li>將步驟 3 產出的 <code>screenshots/</code> 圖片與 <code>transcript.csv</code></li>
+<li>全部複製到 <code>5_RAG_database/input/</code> 資料夾中。</li>
+</ul>
+</li>
+<li><strong>建立索引</strong>:
+    <code>bash
+    cd ../5_RAG_database
+    python rag_ingest.py</code></li>
+</ol>
+<h3>Phase 3: 啟動服務 (Start Server)</h3>
+<ol>
+<li>開啟 <strong>LM Studio</strong>，Start Server (Port 1234)。</li>
+<li>啟動 Flask App:
+    <code>bash
+    python server.py</code></li>
+<li>瀏覽器開啟 <code>http://127.0.0.1:5000</code> 即可開始問答。</li>
+</ol>
+<hr />
+<h2>設定說明 (Configuration)</h2>
+<p>主要設定位於各 Python 腳本的開頭全域變數區塊：</p>
+<ul>
+<li><strong><code>5_RAG_database/rag_query.py</code></strong>:<ul>
+<li><code>LM_STUDIO_URL</code>: LLM API 地址 (預設 <code>http://127.0.0.1:1234/v1</code>)</li>
+<li><code>CLIP_MODEL_NAME</code>: 使用的 Embedding 模型 (預設 <code>openai/clip-vit-base-patch32</code>)</li>
+<li><code>TOP_K_TEXT</code> / <code>TOP_K_IMAGE</code>: 檢索返回的筆數。</li>
+</ul>
+</li>
+<li><strong><code>2_逐字稿擷取/transcribe.py</code></strong>:<ul>
+<li><code>model = whisper.load_model("large")</code>: 可改為 <code>medium</code> 或 <code>small</code> 以節省資源。</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2>開發者指南 (Developer Guide)</h2>
+<h3>建議閱讀順序</h3>
+<ol>
+<li><strong><code>rag_ingest.py</code></strong>: 理解資料如何被向量化與儲存 (資料結構核心)。</li>
+<li><strong><code>rag_query.py</code></strong>: 理解檢索邏輯與 Prompt Engineering (應用核心)。</li>
+<li><strong><code>analyze.py</code></strong>: 理解非結構化影像資料的處理來源。</li>
+</ol>
+<h3>擴充建議</h3>
+<ul>
+<li><strong>更換 Vector DB</strong>: 目前使用本地 FAISS 檔案索引，若資料量大可升級為 ChromaDB 或 Qdrant。</li>
+<li><strong>多影片支援</strong>: 目前流程針對單一影片設計 (<code>test.mp4</code>)。若要支援多影片，需修改 <code>ingest</code> 邏輯以在 Metadata 中區分 Video ID。</li>
+</ul>
+<hr />
+<h2>已知限制與待辦事項 (Limitations &amp; TODO)</h2>
+<ul>
+<li><strong>[Limitation] 單一影片流程</strong>: 腳本目前高度耦合於單一 <code>test.mp4</code> 檔名，批次處理需手動介入。</li>
+<li><strong>[Limitation] 本地路徑相依</strong>: 部分程式碼 (如 <code>analyze.py</code>) 寫死了 conda library 路徑 (<code>C:\Users\ASUS\miniconda3...</code>)，在其他機器需修改。</li>
+<li><strong>[TODO] 自動化 Pipeline</strong>: 目前步驟 1~5 需手動執行與複製檔案，建議撰寫 <code>run_all.bat</code> 或 <code>main.py</code> 串接全流程。</li>
+<li><strong>[TODO] 錯誤處理</strong>: 目前若 LM Studio 未開啟，Server 會直接報錯，需增加優雅的連線重試機制。</li>
+</ul>
