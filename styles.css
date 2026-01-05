@@ -1235,7 +1235,8 @@ img {
 }
 
 .project-card {
-    background: white;
+    background: var(--color-bg-section);
+    border: 1px solid var(--color-border);
     border-radius: 12px;
     overflow: hidden;
     box-shadow: var(--shadow-md);
@@ -1246,7 +1247,8 @@ img {
 
 .project-card:hover {
     transform: translateY(-10px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-glow);
+    border-color: var(--color-primary);
 }
 
 .project-image {
@@ -1379,18 +1381,16 @@ img {
 }
 
 .project-desc {
-    color: var(--color-text-muted);
+    color: var(--color-text-gray);
+    margin-bottom: var(--spacing-md);
     font-size: 0.95rem;
     line-height: 1.6;
-    flex-grow: 1;
-    margin-bottom: var(--spacing-md);
-
-    /* Increased line clamp */
     display: -webkit-box;
     -webkit-line-clamp: 6;
-    /* Show more lines */
+    /* Increased to show more text */
     -webkit-box-orient: vertical;
     overflow: hidden;
+    flex-grow: 1;
 }
 
 .project-tags {
