@@ -3,7 +3,7 @@ name: Update repo cache (tree + README)
 on:
   workflow_dispatch:
   schedule:
-    # 每天 03:10 UTC（台北時間大約 +8 小時）
+    # 每天 03:10 UTC（台北時間約 11:10）
     - cron: "10 3 * * *"
 
 permissions:
@@ -12,16 +12,63 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      USERNAME: gkwang4912
+      EXCLUDE_REPO: personal_website
+
     steps:
       - name: Checkout website repo
         uses: actions/checkout@v4
 
-      - name: Checkout target repo
-        uses: actions/checkout@v4
-        with:
-          repository: gkwang4912/VibeCodingLab
-          path: _repos/gkwang4912__VibeCodingLab
-          fetch-depth: 1
+      - name: Clone all public repos (except excluded)
+        run: |
+          set -euo pipefail
+          mkdir -p _repos
+
+          REPO_LIST="$(python - << 'PY'
+          import json, urllib.request, urllib.parse
+
+          username = "gkwang4912"
+          exclude = "personal_website"
+
+          repos = []
+          page = 1
+          while True:
+            url = f"https://api.github.com/users/{urllib.parse.quote(username)}/repos?per_page=100&page={page}&sort=updated"
+            with urllib.request.urlopen(url) as r:
+              data = json.loads(r.read().decode("utf-8"))
+            if not data:
+              break
+            repos.extend(data)
+            page += 1
+
+          picked = []
+          for r in repos:
+            name = r.get("name","")
+            if name == exclude:
+              continue
+            if r.get("fork"):
+              continue
+            if r.get("archived"):
+              continue
+            picked.append(name)
+
+          print(" ".join(picked))
+          PY)"
+
+          echo "Will clone repos: $REPO_LIST"
+
+          for repo in $REPO_LIST; do
+            dir="_repos/${USERNAME}__${repo}"
+            if [ -d "$dir/.git" ]; then
+              echo "Updating $repo"
+              git -C "$dir" fetch --depth=1 origin
+              git -C "$dir" reset --hard origin/HEAD
+            else
+              echo "Cloning $repo"
+              git clone --depth=1 "https://github.com/${USERNAME}/${repo}.git" "$dir"
+            fi
+          done
 
       - name: Setup Python
         uses: actions/setup-python@v5
