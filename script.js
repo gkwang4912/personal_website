@@ -419,7 +419,13 @@ async function loadProjects() {
 
     } catch (error) {
         console.error('Error loading projects:', error);
-        projectsGrid.innerHTML = '<p class="error-msg">無法載入專案資料，請稍後再試。</p>';
+        projectsGrid.innerHTML = `
+            <div class="error-msg">
+                <h3>無法載入專案資料</h3>
+                <p>請檢查您的網路連線，或確認 GitHub Repository 是否包含 repo-cache 資料夾。</p>
+                <p style="font-size:0.9rem; margin-top:10px; color:#ffaaaa;">Error: ${error.message}</p>
+            </div>
+        `;
     }
 }
 

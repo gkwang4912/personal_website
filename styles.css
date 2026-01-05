@@ -1208,6 +1208,26 @@ img {
     background: var(--color-bg-light);
 }
 
+/* Ensure projects section matches dark theme */
+.projects {
+    background-color: var(--color-bg-dark);
+    min-height: 50vh;
+    /* Ensure it takes space even if empty */
+    position: relative;
+    z-index: 1;
+}
+
+.error-msg {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #ff4444;
+    font-size: 1.2rem;
+    padding: 40px;
+    background: rgba(255, 68, 68, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 68, 68, 0.3);
+}
+
 .projects-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
