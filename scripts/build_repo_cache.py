@@ -35,13 +35,16 @@ def main():
 
     import markdown  # pip install markdown
 
-    # 自動掃描 _repos/*__* 這種目錄
+    # 掃描 _repos/*__*
     repo_dirs = [p for p in REPO_BASE.iterdir() if p.is_dir() and "__" in p.name]
     if not repo_dirs:
         raise SystemExit("No repos found under _repos/. Did you clone them in Actions?")
 
-    for repo_dir in repo_dirs:
+    processed = []  # 用來寫入 project.json
+
+    for repo_dir in sorted(repo_dirs, key=lambda p: p.name.lower()):
         owner, repo = repo_dir.name.split("__", 1)
+
         out_dir = OUT_BASE / repo_dir.name
         out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -59,13 +62,34 @@ def main():
             readme_html = "<p><em>（找不到 README.md）</em></p>"
         (out_dir / "readme.html").write_text(readme_html, encoding="utf-8")
 
+        head = run(["git", "rev-parse", "HEAD"], cwd=repo_dir)
         meta = {
             "owner": owner,
             "repo": repo,
             "generated_at": datetime.now(timezone.utc).isoformat(),
-            "head": run(["git", "rev-parse", "HEAD"], cwd=repo_dir),
+            "head": head,
         }
         (out_dir / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+
+        # 給 project.json 用的清單（你也可以只存 repo 名稱）
+        processed.append({
+            "owner": owner,
+            "repo": repo,
+            "slug": repo_dir.name,  # 例如 gkwang4912__VibeCodingLab
+            "path": f"repo-cache/{repo_dir.name}",
+            "head": head,
+        })
+
+    # 3) 輸出總表：repo-cache/project.json
+    project_index = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "count": len(processed),
+        "repos": processed,
+    }
+    (OUT_BASE / "project.json").write_text(
+        json.dumps(project_index, ensure_ascii=False, indent=2),
+        encoding="utf-8"
+    )
 
 if __name__ == "__main__":
     main()
