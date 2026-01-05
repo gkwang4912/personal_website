@@ -1,0 +1,76 @@
+{
+  "generated_at": "2026-01-05T10:11:15.714367+00:00",
+  "count": 10,
+  "repos": [
+    {
+      "owner": "gkwang4912",
+      "repo": "AI-Guider",
+      "slug": "gkwang4912__AI-Guider",
+      "path": "repo-cache/gkwang4912__AI-Guider",
+      "head": "93726951a7acf6a535ef201fafe83f0a619de3fe"
+    },
+    {
+      "owner": "gkwang4912",
+      "repo": "AI-Gym-Coach-Pro",
+      "slug": "gkwang4912__AI-Gym-Coach-Pro",
+      "path": "repo-cache/gkwang4912__AI-Gym-Coach-Pro",
+      "head": "2214580e3cbe29af3f56bdf61ef16866bbe84449"
+    },
+    {
+      "owner": "gkwang4912",
+      "repo": "CNN-Digit-Recognition-System",
+      "slug": "gkwang4912__CNN-Digit-Recognition-System",
+      "path": "repo-cache/gkwang4912__CNN-Digit-Recognition-System",
+      "head": "ce2fb63e9d107cabb819e61c3c9dfae6143520aa"
+    },
+    {
+      "owner": "gkwang4912",
+      "repo": "Educational-Data-Analysis-Project",
+      "slug": "gkwang4912__Educational-Data-Analysis-Project",
+      "path": "repo-cache/gkwang4912__Educational-Data-Analysis-Project",
+      "head": "8c790dbeae56863192d31cde8e0c5800e11e1ac6"
+    },
+    {
+      "owner": "gkwang4912",
+      "repo": "Multimodal-video-analysis-and-RAG-retrieval-system",
+      "slug": "gkwang4912__Multimodal-video-analysis-and-RAG-retrieval-system",
+      "path": "repo-cache/gkwang4912__Multimodal-video-analysis-and-RAG-retrieval-system",
+      "head": "88bd64c108c50e2a36c4906bad45d2b2905d2ee0"
+    },
+    {
+      "owner": "gkwang4912",
+      "repo": "Musical-Emotion-Analysis-Project",
+      "slug": "gkwang4912__Musical-Emotion-Analysis-Project",
+      "path": "repo-cache/gkwang4912__Musical-Emotion-Analysis-Project",
+      "head": "eab92556dc28fb37e7eb90bc34087a0718e062f9"
+    },
+    {
+      "owner": "gkwang4912",
+      "repo": "MusicLDM-Video-Audio-Processor",
+      "slug": "gkwang4912__MusicLDM-Video-Audio-Processor",
+      "path": "repo-cache/gkwang4912__MusicLDM-Video-Audio-Processor",
+      "head": "6c4915bb031d3d0c79ada0ed3038e51730d1193e"
+    },
+    {
+      "owner": "gkwang4912",
+      "repo": "NTCU-Student-Association-Integration-Project",
+      "slug": "gkwang4912__NTCU-Student-Association-Integration-Project",
+      "path": "repo-cache/gkwang4912__NTCU-Student-Association-Integration-Project",
+      "head": "c7408c9d32c0c0d67116df7cf1237f9c0d3e3991"
+    },
+    {
+      "owner": "gkwang4912",
+      "repo": "Sentiment-Analysis-System",
+      "slug": "gkwang4912__Sentiment-Analysis-System",
+      "path": "repo-cache/gkwang4912__Sentiment-Analysis-System",
+      "head": "65179392b2315865d7547806bb3e5d9bf7dd5177"
+    },
+    {
+      "owner": "gkwang4912",
+      "repo": "VibeCodingLab",
+      "slug": "gkwang4912__VibeCodingLab",
+      "path": "repo-cache/gkwang4912__VibeCodingLab",
+      "head": "074a91039b7eb72cc13e1b4eb986b5fabb1c0394"
+    }
+  ]
+}
