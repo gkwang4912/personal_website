@@ -1,11 +1,6 @@
 import json, subprocess, pathlib
 from datetime import datetime, timezone
 
-# 你要展示的 repo 清單：先放 1 個，成功後再加
-REPOS = [
-    ("gkwang4912", "VibeCodingLab"),
-]
-
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT_BASE = ROOT / "repo-cache"
 REPO_BASE = ROOT / "_repos"
@@ -40,27 +35,28 @@ def main():
 
     import markdown  # pip install markdown
 
-    for owner, repo in REPOS:
-        repo_dir = REPO_BASE / f"{owner}__{repo}"
-        if not repo_dir.exists():
-            raise SystemExit(f"Repo not found: {repo_dir}")
+    # 自動掃描 _repos/*__* 這種目錄
+    repo_dirs = [p for p in REPO_BASE.iterdir() if p.is_dir() and "__" in p.name]
+    if not repo_dirs:
+        raise SystemExit("No repos found under _repos/. Did you clone them in Actions?")
 
-        out_dir = OUT_BASE / f"{owner}__{repo}"
+    for repo_dir in repo_dirs:
+        owner, repo = repo_dir.name.split("__", 1)
+        out_dir = OUT_BASE / repo_dir.name
         out_dir.mkdir(parents=True, exist_ok=True)
 
-        # 1) 目錄樹：用 git ls-tree（不用打 GitHub API）
+        # 1) 目錄樹
         paths = run(["git", "ls-tree", "-r", "--name-only", "HEAD"], cwd=repo_dir).splitlines()
         tree = normalize_tree(build_tree_from_paths(paths))
         (out_dir / "tree.json").write_text(json.dumps(tree, ensure_ascii=False, indent=2), encoding="utf-8")
 
-        # 2) README：只抓根目錄 README.md（你也可以之後擴充）
+        # 2) README（根目錄）
         readme_md = repo_dir / "README.md"
         if readme_md.exists():
             md_text = readme_md.read_text(encoding="utf-8", errors="ignore")
             readme_html = markdown.markdown(md_text, extensions=["fenced_code", "tables"])
         else:
             readme_html = "<p><em>（找不到 README.md）</em></p>"
-
         (out_dir / "readme.html").write_text(readme_html, encoding="utf-8")
 
         meta = {
