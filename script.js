@@ -389,9 +389,11 @@ async function loadProjects() {
         const response = await fetch('repo-cache/projects.json');
         if (!response.ok) throw new Error('Failed to load projects list');
 
-        const projectFolders = await response.json();
+        const data = await response.json();
+        const projects = data.repos || [];
 
-        for (const folder of projectFolders) {
+        for (const repo of projects) {
+            const folder = repo.slug; // Use slug as folder name
             try {
                 // Fetch necessary files in parallel
                 const [readmeRes, metaRes, treeRes] = await Promise.all([
