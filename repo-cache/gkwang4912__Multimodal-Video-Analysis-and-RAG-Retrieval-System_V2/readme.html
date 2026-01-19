@@ -1,0 +1,214 @@
+<h1>影片逐字稿理解系統</h1>
+<h2>專案總覽 (Project Overview)</h2>
+<p>本專案為一套整合「影片內容理解」與「語意搜尋」的系統。使用者可上傳影片檔案，系統會自動進行語者分離逐字稿轉錄、關鍵畫面截圖，並建立 RAG (Retrieval-Augmented Generation) 向量資料庫。使用者後續可透過自然語言搜尋影片特定片段，系統將回傳對應的逐字稿、時間戳記以及該時間點的畫面截圖。</p>
+<p>解決的問題：解決長影片難以快速檢索特定內容的痛點，透過語意搜尋取代傳統的關鍵字搜尋。
+使用對象：需整理大量訪談、會議記錄或教學影片的使用者。
+專案性質：Web Application (Service)</p>
+<h2>系統架構說明 (Architecture Overview)</h2>
+<p>本系統採用 Client-Server 架構。前端為單頁式應用 (SPA)，負責檔案上傳與搜尋介面展示；後端使用 Flask 框架作為 API 伺服器，並協調各個核心處理模組。資料流以檔案系統為基礎，透過 CSV 進行模組間的資料傳遞，最終整合至 SQLite 與 FAISS 向量索引中。</p>
+<h3>模組職責</h3>
+<ul>
+<li><strong>Server (Flask):</strong> 接收請求、協調背景任務、提供 API 介面。</li>
+<li><strong>Transcribe Module:</strong> 負責影片音訊提取與呼叫 OpenAI GPT-4o API 進行轉錄。</li>
+<li><strong>Screenshot Module:</strong> 依據轉錄的時間戳記，使用 OpenCV 擷取影片畫面。</li>
+<li><strong>RAG Module:</strong> 使用 CLIP 模型將文字轉為向量，並建立 FAISS 索引與 SQLite Metadata 資料庫。</li>
+</ul>
+<h3>系統架構圖</h3>
+<pre><code class="language-mermaid">graph TD
+    User[&quot;使用者&quot;] --&gt;|&quot;上傳影片/搜尋&quot;| Frontend[&quot;前端介面 (HTML/JS)&quot;]
+    Frontend &lt;--&gt;|&quot;HTTP API&quot;| Backend[&quot;後端伺服器 (Flask)&quot;]
+
+    subgraph &quot;核心處理模組 (Core Modules)&quot;
+        Backend --&gt;|&quot;1. 呼叫&quot;| Transcribe[&quot;轉錄模組 (transcribe.py)&quot;]
+        Backend --&gt;|&quot;2. 呼叫&quot;| Screenshot[&quot;截圖模組 (extract_screenshots.py)&quot;]
+        Backend --&gt;|&quot;3. 呼叫&quot;| RAG_Ingest[&quot;索引模組 (rag_ingest.py)&quot;]
+        Backend --&gt;|&quot;4. 查詢&quot;| RAG_Query[&quot;搜尋模組 (rag_query.py)&quot;]
+    end
+
+    subgraph &quot;外部服務 &amp; 模型 (External)&quot;
+        Transcribe --&gt;|&quot;API Request&quot;| OpenAI[&quot;OpenAI GPT-4o API&quot;]
+        RAG_Ingest --&gt;|&quot;Load&quot;| CLIP[&quot;CLIP Model (Local)&quot;]
+        RAG_Query --&gt;|&quot;Load&quot;| CLIP
+    end
+
+    subgraph &quot;資料存儲 (Storage)&quot;
+        Transcribe --&gt;|&quot;Write&quot;| CSV[&quot;transcripts.csv&quot;]
+        Screenshot --&gt;|&quot;Update&quot;| CSV
+        Screenshot --&gt;|&quot;Save&quot;| Img[&quot;Images&quot;]
+        RAG_Ingest --&gt;|&quot;Read&quot;| CSV
+        RAG_Ingest --&gt;|&quot;Build&quot;| DB[(&quot;SQLite + FAISS&quot;)]
+        RAG_Query --&gt;|&quot;Query&quot;| DB
+    end
+</code></pre>
+<h2>系統流程說明 (System Flow)</h2>
+<p>系統運作主要分為「資料處理 (Ingestion)」與「搜尋 (Retrieval)」兩個階段。上傳影片後，系統會自動在背景執行處理流程。</p>
+<h3>主要執行流程</h3>
+<ol>
+<li><strong>上傳與音訊提取：</strong> 接收影片，使用 ffmpeg 提取 m4a 音訊。</li>
+<li><strong>逐字稿轉錄：</strong> 將音訊送至 OpenAI GPT-4o-transcribe-diarize 模型，取得含時間戳記與語者標記的文字。</li>
+<li><strong>畫面擷取：</strong> 讀取轉錄結果，針對每一段對話的開始與結束時間進行截圖。</li>
+<li><strong>向量建置：</strong> 讀取最終 CSV，將文字內容通過 CLIP 模型轉為向量，存入 FAISS 索引，並將 Metadata 存入 SQLite。</li>
+</ol>
+<h3>處理流程圖</h3>
+<pre><code class="language-mermaid">flowchart TD
+    Start([開始: 上傳影片]) --&gt; Upload{檢查檔案格式}
+    Upload -- 合格 --&gt; Save[儲存至 input/]
+    Upload -- 不合格 --&gt; Error([返回錯誤])
+
+    Save --&gt; ExtractAudio[ffmpeg 提取音訊]
+    ExtractAudio --&gt; CallOpenAI[OpenAI API 轉錄]
+    CallOpenAI --&gt; GenCSV[生成 transcripts.csv]
+
+    GenCSV --&gt; ReadCSV[讀取逐字稿]
+    ReadCSV --&gt; ExtractFrames[OpenCV 擷取截圖]
+    ExtractFrames --&gt; UpdateCSV[更新 CSV 增加圖片路徑]
+
+    UpdateCSV --&gt; GenEmbedding[CLIP 模型生成向量]
+    GenEmbedding --&gt; BuildIndex[建立 FAISS 索引]
+    GenEmbedding --&gt; SaveDB[寫入 SQLite DB]
+
+    SaveDB --&gt; End([結束: 等待搜尋])
+</code></pre>
+<h2>資料夾結構說明 (Folder Structure)</h2>
+<pre><code class="language-text">/ (Root)
+├── 1_逐字稿擷取/            # 轉錄模組目錄
+│   ├── transcribe.py       # 核心轉錄邏輯，包含 ffmpeg 呼叫與 OpenAI API 串接
+│   └── api_key.json        # OpenAI API 金鑰設定檔
+├── 2_逐字稿圖片擷取/        # 截圖模組目錄
+│   └── extract_screenshots.py # 讀取 CSV 並使用 OpenCV 截圖
+├── 3_RAG_database/         # RAG 資料庫模組目錄
+│   ├── rag_ingest.py       # 建立向量資料庫索引 (Ingestion)
+│   └── rag_query.py        # 執行語意搜尋 (Retrieval)
+├── 4_server/               # 後端伺服器目錄
+│   ├── server.py           # Flask 主程式，定義 API Endpoint
+│   └── requirements.txt    # Python 相依套件清單
+├── 5_frontend/             # 前端靜態資源目錄
+│   ├── index.html          # 主頁面結構
+│   ├── app.js              # 前端邏輯 (API 呼叫、狀態輪詢)
+│   └── styles.css          # 樣式表
+├── input/                  # 影片輸入目錄 (使用者上傳暫存)
+└── output/                 # 系統輸出目錄
+    ├── screenshots/        # 存放所有截圖檔案
+    ├── transcripts.csv     # 核心資料檔 (含文字、時間、圖片路徑)
+    ├── rag_mm.db           # SQLite Metadata 資料庫
+    └── transcript.index    # FAISS 向量索引檔
+</code></pre>
+<h2>核心模組與重要檔案 (Key Modules &amp; Files)</h2>
+<h3>模組關係圖</h3>
+<pre><code class="language-mermaid">classDiagram
+    class Server {
+        +process_video()
+        +search()
+        +serve_static()
+    }
+    class Transcribe {
+        +extract_audio_from_video()
+        +transcribe_audio_gpt4o()
+        +save_to_csv()
+    }
+    class Screenshot {
+        +extract_frames()
+    }
+    class RAG_Ingest {
+        +ingest()
+        +get_text_embedding()
+    }
+    class RAG_Query {
+        +search()
+    }
+
+    Server ..&gt; Transcribe : 1. 呼叫
+    Server ..&gt; Screenshot : 2. 呼叫
+    Server ..&gt; RAG_Ingest : 3. 呼叫
+    Server ..&gt; RAG_Query : 4. 搜尋
+    Transcribe --|&gt; Screenshot : 產出 CSV
+    Screenshot --|&gt; RAG_Ingest : 產出完整 CSV
+</code></pre>
+<ul>
+<li><strong>server.py</strong>: 整合中心，管理 <code>processing_status</code> 狀態，並依序動態載入執行 <code>transcribe</code>、<code>extract_screenshots</code> 與 <code>rag_ingest</code>。</li>
+<li><strong>transcribe.py</strong>: 負責與 OpenAI 溝通。特點是實作了大型音訊檔案分割 (<code>split_audio</code>) 機制，避免超過 API 限制。</li>
+<li><strong>extract_screenshots.py</strong>: 影格處理核心。讀取 CSV 後，計算毫秒級時間點，精準擷取對話開始與結束畫面。</li>
+<li><strong>rag_ingest.py</strong>: 資料庫建置者。使用 <code>openai/clip-vit-base-patch32</code> 模型將文字向量化，這是搜尋功能的基礎。</li>
+</ul>
+<h2>安裝與環境需求 (Installation &amp; Requirements)</h2>
+<h3>系統需求</h3>
+<ul>
+<li>作業系統：Windows (程式碼中包含對 Windows 路徑與 ffmpeg 指令的特定處理)</li>
+<li>Python 版本：3.8+</li>
+</ul>
+<h3>外部工具</h3>
+<ul>
+<li><strong>ffmpeg</strong>: 必須安裝並加入系統 PATH 環境變數，用於音訊提取。</li>
+</ul>
+<h3>Python 相依套件</h3>
+<p>請參閱 <code>4_server/requirements.txt</code>，主要包含：
+- flask, flask-cors (Web Server)
+- openai, requests (API Client)
+- opencv-python (Image Processing)
+- torch, transformers (AI Model)
+- faiss-cpu (Vector Index)
+- pillow (Image utility)</p>
+<h3>環境變數與設定</h3>
+<ul>
+<li><strong>OpenAI API Key</strong>: 必須設定於 <code>1_逐字稿擷取/api_key.json</code>。格式如下：
+  <code>json
+  {
+      "openai": {
+          "api_key": "YOUR_API_KEY"
+      }
+  }</code></li>
+</ul>
+<h2>使用方式 (How to Use)</h2>
+<h3>啟動系統</h3>
+<ol>
+<li>開啟終端機，切換至 <code>4_server</code> 目錄。</li>
+<li>執行伺服器：
+   <code>bash
+   python server.py</code></li>
+<li>伺服器將啟動於 <code>http://localhost:5000</code>。</li>
+</ol>
+<h3>操作流程</h3>
+<ol>
+<li><strong>開啟瀏覽器</strong>：存取 <code>http://localhost:5000</code>。</li>
+<li><strong>上傳影片</strong>：點擊上傳按鈕選擇影片檔案。</li>
+<li><strong>等待處理</strong>：介面會顯示目前進度 (轉錄 -&gt; 截圖 -&gt; 建立索引)。</li>
+<li><strong>搜尋內容</strong>：處理完成後，於搜尋框輸入自然語言 (例如：「提到人工智慧的地方」)。</li>
+<li><strong>檢視結果</strong>：系統列出相關片段，包含文字與對應截圖。</li>
+</ol>
+<h2>設定說明 (Configuration)</h2>
+<ul>
+<li><strong>API Key</strong>: 修改 <code>1_逐字稿擷取/api_key.json</code>。</li>
+<li><strong>CLIP 模型</strong>: 於 <code>rag_ingest.py</code> 與 <code>rag_query.py</code> 中定義 <code>CLIP_MODEL_NAME = "openai/clip-vit-base-patch32"</code>，可依需求更換 HuggingFace 模型。</li>
+<li><strong>搜尋結果數量</strong>: 於 <code>rag_query.py</code> 中定義 <code>TOP_K = 5</code>，控制預設回傳筆數。</li>
+<li><strong>截圖解析度</strong>: 依賴原始影片解析度，<code>extract_screenshots.py</code> 直接儲存原始影格。</li>
+</ul>
+<h2>開發者指南 (Developer Guide)</h2>
+<h3>建議閱讀順序</h3>
+<ol>
+<li><code>4_server/server.py</code>: 理解整體調度邏輯與 API 定義。</li>
+<li><code>1_逐字稿擷取/transcribe.py</code>: 理解如何處理音訊與串接 OpenAI。</li>
+<li><code>3_RAG_database/rag_ingest.py</code>: 理解向量資料庫的結構。</li>
+</ol>
+<h3>修改注意事項</h3>
+<ul>
+<li><strong>路徑處理</strong>: 專案大量使用相對路徑 (<code>Path(__file__).parent</code>) 定位跨目錄檔案，移動檔案時需特別注意路徑參照。</li>
+<li><strong>動態載入</strong>: <code>server.py</code> 使用 <code>importlib</code> 動態載入模組，修改模組檔名需同步更新 server 程式碼。</li>
+<li><strong>Windows 相容性</strong>: FAISS 在 Windows 寫入索引時有路徑編碼問題，程式碼中已包含 <code>os.chdir</code> 的 workaround，請勿移除。</li>
+</ul>
+<h2>已知限制與待辦事項 (Limitations &amp; TODO)</h2>
+<h3>限制 (Limitations)</h3>
+<ul>
+<li><strong>檔案大小</strong>: <code>transcribe.py</code> 內建分割邏輯處理超過 25MB 的音訊，但極大檔案可能導致處理時間過長。</li>
+<li><strong>單一執行緒</strong>: <code>server.py</code> 使用全域 <code>processing_status</code> 變數且未實作 Job Queue，同一時間只能處理一個影片上傳任務。</li>
+<li><strong>ffmpeg 相依</strong>: 必須預先手動安裝 ffmpeg，無自動安裝機制。</li>
+</ul>
+<h3>待辦事項 (TODO)</h3>
+<ul>
+<li>實作多人多工佇列 (Queue System)。</li>
+<li>增加對更多影片格式的錯誤處理。</li>
+<li>優化 CLIP 模型載入速度 (目前每次查詢或建立索引時皆重新載入模型)。</li>
+</ul>
+<h2>補充說明 (Notes)</h2>
+<ul>
+<li><code>output/</code> 資料夾中的 <code>transcripts.csv</code> 是系統的核心資料交換中心。若需手動修正逐字稿，可直接編輯此 CSV，但需確保格式正確，並重新執行 <code>rag_ingest.py</code> 以更新索引。</li>
+</ul>

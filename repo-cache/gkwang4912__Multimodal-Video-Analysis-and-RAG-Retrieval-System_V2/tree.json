@@ -1,0 +1,80 @@
+{
+  "type": "dir",
+  "name": "",
+  "children": [
+    {
+      "type": "dir",
+      "name": "\"1_\\351\\200\\220\\345\\255\\227\\347\\250\\277\\346\\223\\267\\345\\217\\226",
+      "children": [
+        {
+          "type": "file",
+          "name": "api_key.json\""
+        },
+        {
+          "type": "file",
+          "name": "transcribe.py\""
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "\"2_\\351\\200\\220\\345\\255\\227\\347\\250\\277\\345\\234\\226\\347\\211\\207\\346\\223\\267\\345\\217\\226",
+      "children": [
+        {
+          "type": "file",
+          "name": "extract_screenshots.py\""
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "3_RAG_database",
+      "children": [
+        {
+          "type": "file",
+          "name": "rag_ingest.py"
+        },
+        {
+          "type": "file",
+          "name": "rag_query.py"
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "4_server",
+      "children": [
+        {
+          "type": "file",
+          "name": "server.py"
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "5_frontend",
+      "children": [
+        {
+          "type": "file",
+          "name": "app.js"
+        },
+        {
+          "type": "file",
+          "name": "index.html"
+        },
+        {
+          "type": "file",
+          "name": "styles.css"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "README.md"
+    },
+    {
+      "type": "file",
+      "name": "requirements.txt"
+    }
+  ]
+}
