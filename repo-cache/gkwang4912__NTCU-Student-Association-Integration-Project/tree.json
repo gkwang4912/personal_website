@@ -7,8 +7,28 @@
       "name": "\"\\347\\211\\271\\347\\264\\204",
       "children": [
         {
+          "type": "dir",
+          "name": "Design",
+          "children": [
+            {
+              "type": "file",
+              "name": "pencil-new.pen\""
+            }
+          ]
+        },
+        {
+          "type": "dir",
+          "name": "web_image",
+          "children": [
+            {
+              "type": "file",
+              "name": "icon.jpg\""
+            }
+          ]
+        },
+        {
           "type": "file",
-          "name": "SA_food.html\""
+          "name": "index.html\""
         },
         {
           "type": "file",
