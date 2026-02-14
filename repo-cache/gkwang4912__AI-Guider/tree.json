@@ -4,16 +4,6 @@
   "children": [
     {
       "type": "dir",
-      "name": "\"backend",
-      "children": [
-        {
-          "type": "file",
-          "name": "\\346\\214\\207\\344\\273\\244.txt\""
-        }
-      ]
-    },
-    {
-      "type": "dir",
       "name": "backend",
       "children": [
         {
@@ -87,4 +77,5 @@
       "name": "README.md"
     }
   ]
+
 }
