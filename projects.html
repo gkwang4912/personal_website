@@ -106,15 +106,29 @@
     <!-- Project Details Modal -->
     <div id="project-modal" class="modal">
         <div class="modal-content">
-            <button class="modal-close-btn" aria-label="Close modal">&times;</button>
+            <div class="modal-header">
+                <h2 id="modal-title" class="modal-title">Project Details</h2>
+                <button class="modal-close-btn" aria-label="Close modal">&times;</button>
+            </div>
+            <!-- Tab Bar (visible on mobile only) -->
+            <div class="modal-tabs">
+                <button class="modal-tab active" data-tab="readme">README</button>
+                <button class="modal-tab" data-tab="structure">Structure</button>
+            </div>
             <div class="modal-body">
-                <aside class="file-tree-container">
-                    <h3>Project Structure</h3>
-                    <div id="file-tree" class="file-tree"></div>
-                </aside>
-                <main class="readme-container">
+                <main class="readme-container modal-panel" data-panel="readme">
                     <div id="readme-content" class="markdown-body"></div>
                 </main>
+                <aside class="file-tree-container modal-panel" data-panel="structure">
+                    <div class="file-tree-header">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                            <path
+                                d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+                        </svg>
+                        <span>Project Structure</span>
+                    </div>
+                    <div id="file-tree" class="file-tree"></div>
+                </aside>
             </div>
         </div>
     </div>
@@ -125,6 +139,7 @@
         mermaid.initialize({ startOnLoad: false, theme: 'default' });
     </script>
 
+    <script src="data.js"></script>
     <script src="script.js"></script>
 </body>
 

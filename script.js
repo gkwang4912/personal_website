@@ -294,8 +294,13 @@ async function loadExperience() {
     if (!unifiedList) return;
 
     try {
-        const response = await fetch('experience.csv');
-        const csvText = await response.text();
+        let csvText = '';
+        if (window.SITE_DATA && window.SITE_DATA.experience) {
+            csvText = window.SITE_DATA.experience;
+        } else {
+            const response = await fetch('experience.csv');
+            csvText = await response.text();
+        }
 
         // 解析 CSV
         const lines = csvText.trim().split('\n');
@@ -379,45 +384,88 @@ function parseCSVLine(line) {
 // ========================================
 // Projects Loading from repo-cache
 // ========================================
+
+// 預取快取：背景載入專案的 README 與 Tree 資料
+const projectCache = {};
+
 async function loadProjects() {
     const projectsGrid = document.querySelector('.projects-grid');
     if (!projectsGrid) return;
 
-    projectsGrid.innerHTML = ''; // Clear container
+    projectsGrid.innerHTML = ''; // 清空容器
 
     try {
-        const response = await fetch('repo-cache/project.json');
-        if (!response.ok) throw new Error('Failed to load projects list');
+        let projects = [];
+        let repoFiles = {};
 
-        const data = await response.json();
-        const projects = data.repos || [];
+        if (window.SITE_DATA && window.SITE_DATA.projects) {
+            projects = window.SITE_DATA.projects.repos || [];
+            repoFiles = window.SITE_DATA.repo_files || {};
+        } else {
+            const response = await fetch('repo-cache/project.json');
+            if (!response.ok) throw new Error('Failed to load projects list');
+            const data = await response.json();
+            projects = data.repos || [];
+        }
 
+        // 逐個載入專案卡片，每個完成後立即顯示
+        let cardIndex = 0;
         for (const repo of projects) {
-            const folder = repo.slug; // Use slug as folder name
+            const folder = repo.slug;
             try {
-                // Fetch necessary files in parallel
-                const [readmeRes, metaRes, treeRes] = await Promise.all([
-                    fetch(`repo-cache/${folder}/readme.html`),
-                    fetch(`repo-cache/${folder}/meta.json`),
-                    fetch(`repo-cache/${folder}/tree.json`)
-                ]);
+                let readmeText = '', meta = {}, tree = {};
 
-                // Extract data
-                const readmeText = readmeRes.ok ? await readmeRes.text() : '';
-                const meta = metaRes.ok ? await metaRes.json() : {};
-                const tree = treeRes.ok ? await treeRes.json() : {};
+                if (repoFiles[folder]) {
+                    readmeText = repoFiles[folder].readme || '';
+                    meta = repoFiles[folder].meta || {};
+                    tree = repoFiles[folder].tree || {};
+                    // 離線資料直接存入快取
+                    projectCache[folder] = {
+                        readme: readmeText,
+                        tree: tree,
+                        loaded: true
+                    };
+                } else {
+                    // 只抓取卡片所需的最小資料（meta + tree 用於標籤推斷）
+                    const [readmeRes, metaRes, treeRes] = await Promise.all([
+                        fetch(`repo-cache/${folder}/readme.html`),
+                        fetch(`repo-cache/${folder}/meta.json`),
+                        fetch(`repo-cache/${folder}/tree.json`)
+                    ]);
+
+                    readmeText = readmeRes.ok ? await readmeRes.text() : '';
+                    meta = metaRes.ok ? await metaRes.json() : {};
+                    tree = treeRes.ok ? await treeRes.json() : {};
+
+                    // 載入完成後同時存入快取，開啟 modal 時不需重複抓取
+                    projectCache[folder] = {
+                        readme: readmeText,
+                        tree: tree,
+                        loaded: true
+                    };
+                }
 
                 const info = extractProjectInfo(folder, readmeText, meta, tree);
                 createProjectCard(info, projectsGrid);
+
+                // 交錯動畫：每張卡片延遲出現
+                const card = projectsGrid.lastElementChild;
+                if (card) {
+                    card.style.animationDelay = `${cardIndex * 0.08}s`;
+                    revealObserver.observe(card);
+                }
+                cardIndex++;
+
+                // 讓瀏覽器有機會渲染已完成的卡片，避免長時間阻塞 UI
+                await new Promise(resolve => setTimeout(resolve, 0));
 
             } catch (err) {
                 console.warn(`Skipping project ${folder}`, err);
             }
         }
 
-        // Re-trigger reveal animations for new elements
-        const newReveals = projectsGrid.querySelectorAll('.reveal-up');
-        newReveals.forEach(el => revealObserver.observe(el));
+        // 所有卡片載入後，在背景預取尚未快取的專案資料
+        prefetchRemainingProjects(projects);
 
     } catch (error) {
         console.error('Error loading projects:', error);
@@ -428,6 +476,54 @@ async function loadProjects() {
                 <p style="font-size:0.9rem; margin-top:10px; color:#ffaaaa;">Error: ${error.message}</p>
             </div>
         `;
+    }
+}
+
+// 背景預取：利用瀏覽器閒置時間載入未快取的專案資源
+function prefetchRemainingProjects(projects) {
+    const uncached = projects.filter(repo => !projectCache[repo.slug]);
+    if (uncached.length === 0) return;
+
+    let index = 0;
+
+    function prefetchNext() {
+        if (index >= uncached.length) return;
+
+        const folder = uncached[index].slug;
+        index++;
+
+        // 使用低優先級抓取，不影響使用者互動
+        Promise.all([
+            fetch(`repo-cache/${folder}/readme.html`),
+            fetch(`repo-cache/${folder}/tree.json`)
+        ]).then(async ([readmeRes, treeRes]) => {
+            projectCache[folder] = {
+                readme: readmeRes.ok ? await readmeRes.text() : '',
+                tree: treeRes.ok ? await treeRes.json() : {},
+                loaded: true
+            };
+
+            // 繼續預取下一個，使用 requestIdleCallback 避免影響主執行緒
+            if (typeof requestIdleCallback !== 'undefined') {
+                requestIdleCallback(prefetchNext);
+            } else {
+                setTimeout(prefetchNext, 100);
+            }
+        }).catch(() => {
+            // 預取失敗不影響功能，繼續下一個
+            if (typeof requestIdleCallback !== 'undefined') {
+                requestIdleCallback(prefetchNext);
+            } else {
+                setTimeout(prefetchNext, 100);
+            }
+        });
+    }
+
+    // 延遲啟動預取，確保主頁面渲染完成
+    if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(prefetchNext);
+    } else {
+        setTimeout(prefetchNext, 500);
     }
 }
 
@@ -581,6 +677,7 @@ const modal = document.getElementById('project-modal');
 const modalCloseBtn = document.querySelector('.modal-close-btn');
 const readmeContent = document.getElementById('readme-content');
 const fileTree = document.getElementById('file-tree');
+const modalTitle = document.getElementById('modal-title');
 
 if (modalCloseBtn) {
     modalCloseBtn.addEventListener('click', closeProjectModal);
@@ -602,59 +699,109 @@ if (modal) {
     });
 }
 
+// Tab switching logic (mobile)
+const modalTabs = document.querySelectorAll('.modal-tab');
+const modalPanels = document.querySelectorAll('.modal-panel');
+
+modalTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        const target = tab.getAttribute('data-tab');
+
+        // Update active tab
+        modalTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Update active panel
+        modalPanels.forEach(p => {
+            if (p.getAttribute('data-panel') === target) {
+                p.classList.add('active');
+            } else {
+                p.classList.remove('active');
+            }
+        });
+    });
+});
+
 function openProjectModal(folderName) {
     if (!modal) return;
 
-    // Reset content
+    // 設定 modal 標題
+    const displayName = folderName.replace('gkwang4912__', '');
+    if (modalTitle) modalTitle.textContent = displayName;
+
+    // 重設內容為載入狀態
     readmeContent.innerHTML = '<div class="loading" style="padding:40px;text-align:center;color:#666;">Loading content...</div>';
     fileTree.innerHTML = '<div class="loading" style="padding:20px;text-align:center;color:#666;">Loading structure...</div>';
 
+    // 重設分頁為預設（README）
+    modalTabs.forEach(t => t.classList.remove('active'));
+    modalPanels.forEach(p => p.classList.remove('active'));
+    const defaultTab = document.querySelector('.modal-tab[data-tab="readme"]');
+    const defaultPanel = document.querySelector('.modal-panel[data-panel="readme"]');
+    if (defaultTab) defaultTab.classList.add('active');
+    if (defaultPanel) defaultPanel.classList.add('active');
+
     modal.style.display = 'flex';
-    // Trigger reflow
+    // 觸發 reflow 以啟動過渡動畫
     modal.offsetHeight;
     modal.classList.add('active');
-    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    document.body.style.overflow = 'hidden'; // 防止背景捲動
 
-    // Fetch Readme
+    // 優先使用預取快取（最快路徑）
+    if (projectCache[folderName] && projectCache[folderName].loaded) {
+        const cached = projectCache[folderName];
+
+        if (cached.readme) {
+            renderReadme(cached.readme);
+        } else {
+            readmeContent.innerHTML = '<p class="error" style="text-align:center;padding:40px;color:red;">Documentation not available.</p>';
+        }
+
+        if (cached.tree) {
+            fileTree.innerHTML = '<ul>' + renderFileTree(cached.tree) + '</ul>';
+        } else {
+            fileTree.innerHTML = '<p class="error" style="padding:20px;color:red;">Structure not available.</p>';
+        }
+
+        return;
+    }
+
+    // 次優先：使用離線資料（SITE_DATA）
+    if (window.SITE_DATA && window.SITE_DATA.repo_files && window.SITE_DATA.repo_files[folderName]) {
+        const repoData = window.SITE_DATA.repo_files[folderName];
+
+        if (repoData.readme) {
+            renderReadme(repoData.readme);
+        } else {
+            readmeContent.innerHTML = '<p class="error" style="text-align:center;padding:40px;color:red;">Documentation not available.</p>';
+        }
+
+        if (repoData.tree) {
+            fileTree.innerHTML = '<ul>' + renderFileTree(repoData.tree) + '</ul>';
+        } else {
+            fileTree.innerHTML = '<p class="error" style="padding:20px;color:red;">Structure not available.</p>';
+        }
+
+        return;
+    }
+
+    // 最後手段：透過網路抓取
     fetch(`repo-cache/${folderName}/readme.html`)
         .then(res => {
             if (!res.ok) throw new Error('Readme not found');
             return res.text();
         })
         .then(html => {
-            readmeContent.innerHTML = html;
-
-            // Re-highlight code blocks if highlight.js is available
-            if (window.hljs) {
-                readmeContent.querySelectorAll('pre code').forEach((block) => {
-                    hljs.highlightBlock(block);
-                });
-            }
-
-            // Render Mermaid Diagrams
-            // Convert <pre><code class="language-mermaid"> to <div class="mermaid">
-            const mermaidBlocks = readmeContent.querySelectorAll('pre code.language-mermaid');
-            mermaidBlocks.forEach(block => {
-                const pre = block.parentElement;
-                const div = document.createElement('div');
-                div.className = 'mermaid';
-                div.textContent = block.textContent;
-                pre.replaceWith(div);
-            });
-
-            // Run Mermaid
-            if (window.mermaid) {
-                mermaid.run({
-                    nodes: readmeContent.querySelectorAll('.mermaid')
-                });
-            }
+            renderReadme(html);
+            // 存入快取供後續使用
+            if (!projectCache[folderName]) projectCache[folderName] = {};
+            projectCache[folderName].readme = html;
         })
         .catch(err => {
             readmeContent.innerHTML = '<p class="error" style="text-align:center;padding:40px;color:red;">Failed to load documentation. (readme.html not found)</p>';
             console.error(err);
         });
 
-    // Fetch File Tree
     fetch(`repo-cache/${folderName}/tree.json`)
         .then(res => {
             if (!res.ok) throw new Error('Tree not found');
@@ -662,11 +809,44 @@ function openProjectModal(folderName) {
         })
         .then(tree => {
             fileTree.innerHTML = '<ul>' + renderFileTree(tree) + '</ul>';
+            // 存入快取供後續使用
+            if (!projectCache[folderName]) projectCache[folderName] = {};
+            projectCache[folderName].tree = tree;
+            projectCache[folderName].loaded = true;
         })
         .catch(err => {
             fileTree.innerHTML = '<p class="error" style="padding:20px;color:red;">Failed to load structure.</p>';
             console.error(err);
         });
+}
+
+// Helper to render readme content and initialize plugins
+function renderReadme(html) {
+    readmeContent.innerHTML = html;
+
+    // Re-highlight code blocks if highlight.js is available
+    if (window.hljs) {
+        readmeContent.querySelectorAll('pre code').forEach((block) => {
+            hljs.highlightBlock(block);
+        });
+    }
+
+    // Render Mermaid Diagrams
+    const mermaidBlocks = readmeContent.querySelectorAll('pre code.language-mermaid');
+    mermaidBlocks.forEach(block => {
+        const pre = block.parentElement;
+        const div = document.createElement('div');
+        div.className = 'mermaid';
+        div.textContent = block.textContent;
+        pre.replaceWith(div);
+    });
+
+    // Run Mermaid
+    if (window.mermaid) {
+        mermaid.run({
+            nodes: readmeContent.querySelectorAll('.mermaid')
+        });
+    }
 }
 
 function closeProjectModal() {
@@ -683,7 +863,10 @@ function closeProjectModal() {
 
 function renderFileTree(node) {
     if (node.type === 'file') {
-        return `<li class="file">${node.name}</li>`;
+        // 取得副檔名，用於對應不同圖示
+        const ext = node.name.includes('.') ? node.name.split('.').pop().toLowerCase() : '';
+        const extClass = ext ? ` file-${ext}` : '';
+        return `<li class="file${extClass}">${node.name}</li>`;
     }
 
     if (node.type === 'dir') {
