@@ -1,306 +1,225 @@
-<h1>VibeCodingLab 專案說明文件</h1>
+<h1>VibeCodingLab (Python 智能診斷平台)</h1>
 <h2>專案總覽 (Project Overview)</h2>
-<p><strong>VibeCodingLab</strong> 是一個互動式的 Python 程式設計學習平台（Web Application），旨在透過即時的程式碼執行與 AI 輔助評分，幫助使用者練習 Python 程式題。</p>
+<p>本專案是一個基於 Python Flask 的 Web 應用程式，旨在提供學生一個互動式的 Python 程式練習環境。系統結合了 OpenAI 的大型語言模型 (LLM)，能針對學生的程式碼提供即時的執行結果、錯誤分析、評分與優化建議。</p>
 <ul>
-<li><strong>解決的問題</strong>：提供一個安全、即時回饋的 Python 練習環境，解決傳統練習缺乏即時指導與程式碼品質分析的問題。</li>
-<li><strong>使用對象</strong>：Python 初學者、程式設計學生。</li>
-<li><strong>專案性質</strong>：Web Application (Frontend + Backend)。</li>
+<li><strong>解決的問題</strong>：提供初學者即時且具體的程式碼回饋，解決自學時缺乏指導的痛點。</li>
+<li><strong>使用對象</strong>：Python 程式語言初學者、程式設計課程學生。</li>
+<li><strong>專案性質</strong>：Web Application (前後端分離架構)。</li>
 </ul>
-<p>主要特色包含：
-- <strong>安全沙箱執行</strong>：在後端安全地執行使用者提交的 Python 程式碼。
-- <strong>AI 智慧評分</strong>：整合 Google Gemini API，針對程式碼的正確性、時間/空間複雜度、易讀性進行多維度評分。
-- <strong>即時回饋</strong>：提供執行結果與 AI 建議，引導使用者優化程式碼。
-- <strong>題目管理</strong>：整合 Google Sheets 作為題目與成績的後台資料庫。</p>
-<p>網站連結： https://gkwang4912.github.io/VibeCodingLab/</p>
 <h2>系統架構說明 (Architecture Overview)</h2>
-<p>本系統採用經典的前後端分離架構。前端負責使用者介面與互動，後端負責核心邏輯、程式碼安全執行與 AI 整合。</p>
-<ul>
-<li><strong>Frontend</strong>: 使用原生 HTML/CSS/JavaScript 建構，整合 Monaco Editor 提供 IDE 等級的編輯體驗。</li>
-<li><strong>Backend</strong>: 使用 Python Flask 框架，處理 API 請求、管理與 Google Sheets 的同步，並實作程式碼沙箱 (Sandbox)。</li>
-<li><strong>AI Service</strong>: 整合 Google Gemini API 進行程式碼理解與評分。</li>
-<li><strong>Database</strong>: 使用 JSON 檔案快取題目資料，並以 Google Sheets 作為持久化資料源。</li>
-</ul>
-<pre><code class="language-mermaid">graph TD
-    User((使用者)) --&gt;|HTTPS| Frontend[&quot;Frontend (Browser)&quot;]
+<p>本系統採用前後端分離設計。後端使用 Flask 框架處理 API 請求、程式碼安全性檢查與執行；前端使用純 HTML/CSS/JS 構建。外部依賴包括 OpenAI API (用於代碼分析) 與 Google Sheets (用於題目管理與成績記錄)。</p>
+<h3>系統架構圖</h3>
+<pre><code class="language-mermaid">flowchart TD
+    User[&quot;使用者 (Browser)&quot;] &lt;--&gt;|HTTP/JSON| Frontend[&quot;前端介面 (HTML/JS)&quot;]
+    Frontend &lt;--&gt;|REST API| Backend[&quot;後端伺服器 (Flask)&quot;]
 
-    subgraph &quot;Local / Server Environment&quot;
-        Frontend --&gt;|API Request| Flask[&quot;Backend Server (Flask)&quot;]
-        Flask --&gt;|Safe Execute| Sandbox[&quot;Python Sandbox&quot;]
-        Flask --&gt;|Read/Write| Config[&quot;JSON Config &amp; Data&quot;]
+    subgraph Backend_System [後端系統]
+        Backend --&gt;|1. 驗證與執行| Sandbox[&quot;安全執行沙箱 (Safe Exec)&quot;]
+        Backend --&gt;|2. 題目管理| QuestionLoader[&quot;題目讀取模組 (Fetch Questions)&quot;]
+        Backend --&gt;|3. 成績處理| ScoreManager[&quot;成績管理模組&quot;]
     end
 
-    subgraph &quot;External Services&quot;
-        Flask --&gt;|Generate Content| Gemini[&quot;Google Gemini API&quot;]
-        Flask --&gt;|Sync Data| GSheets[(&quot;Google Sheets&quot;)]
-        Frontend -.-&gt;|Tunneling| Ngrok[&quot;Ngrok Tunnel&quot;]
+    subgraph External_Services [外部服務]
+        Backend &lt;--&gt;|分析請求| OpenAI[&quot;OpenAI API&quot;]
+        QuestionLoader &lt;--&gt;|讀取 CSV| GSheets[&quot;Google Sheets (題目資料庫)&quot;]
+        ScoreManager --&gt;|寫入成績| GWebApp[&quot;Google Apps Script (成績記錄)&quot;]
     end
 
-    style Frontend fill:#f9f,stroke:#333,stroke-width:2px
-    style Flask fill:#bbf,stroke:#333,stroke-width:2px
-    style Sandbox fill:#bfb,stroke:#333,stroke-width:2px
+    ScoreManager --&gt;|備份| LocalFile[&quot;本地 JSON 檔案&quot;]
 </code></pre>
 <h2>系統流程說明 (System Flow)</h2>
-<p>以下展示使用者提交程式碼進行「AI 檢查」的核心流程：</p>
-<ol>
-<li><strong>提交</strong>：使用者在編輯器撰寫程式碼並點擊檢查。</li>
-<li><strong>驗證</strong>：後端先進行 AST (Abstract Syntax Tree) 安全性檢查，阻擋危險函數。</li>
-<li><strong>執行</strong>：在限制時間與權限的環境下執行程式碼，比對輸出與預期結果。</li>
-<li><strong>AI 分析</strong>：若執行正確，將程式碼傳送至 Gemini API 進行多維度評分。</li>
-<li><strong>回饋</strong>：前端接收並顯示評分雷達圖與改進建議。</li>
-</ol>
+<p>主要流程包含：題目載入、程式碼執行、AI 分析與成績提交。</p>
+<h3>核心運作流程圖</h3>
 <pre><code class="language-mermaid">sequenceDiagram
-    participant User as 使用者
-    participant UI as 前端介面
-    participant Server as 後端 (Flask)
-    participant Sandbox as 沙箱環境
-    participant AI as Gemini API
+    participant U as 使用者
+    participant F as 前端介面
+    participant S as Flask Server
+    participant AI as OpenAI API
+    participant DB as Google Sheets
 
-    User-&gt;&gt;UI: 撰寫程式碼並點擊 &quot;AI 檢查&quot;
-    UI-&gt;&gt;Server: POST /ai-check (code, question_id)
-
-    rect rgb(240, 240, 240)
-        Note over Server: 安全性驗證 (Safety Check)
-        Server-&gt;&gt;Server: AST 分析 (阻擋危險 import/exec)
+    Note over U, DB: 1. 題目載入流程
+    U-&gt;&gt;F: 開啟頁面
+    F-&gt;&gt;S: GET /api/questions
+    alt 快取有效
+        S--&gt;&gt;F: 回傳 tool/questions.json 快取
+    else 快取過期
+        S-&gt;&gt;DB: 讀取題目 CSV
+        DB--&gt;&gt;S: 回傳資料
+        S-&gt;&gt;S: 解析並更新快取
+        S--&gt;&gt;F: 回傳新題目列表
     end
 
-    alt 安全性驗證失敗
-        Server--&gt;&gt;UI: 回傳 &quot;Security Error&quot;
-        UI-&gt;&gt;User: 顯示禁止使用的語法警告
-    else 驗證通過
-        Server-&gt;&gt;Sandbox: 執行程式碼 (Execute with Timeout)
-        Sandbox--&gt;&gt;Server: 回傳 執行輸出 (Output)
+    Note over U, DB: 2. 程式執行與分析流程
+    U-&gt;&gt;F: 撰寫程式碼並執行
+    F-&gt;&gt;S: POST /api/execute/interactive
+    S-&gt;&gt;S: 安全性檢查 (AST Parse)
+    alt 檢查通過
+        S-&gt;&gt;S: 在沙箱中執行程式
+        S--&gt;&gt;F: 回傳執行結果 (Output)
 
-        alt 執行錯誤 或 答案不符
-            Server--&gt;&gt;UI: 回傳 執行錯誤資訊
-            UI-&gt;&gt;User: 顯示錯誤 Log
-        else 答案正確
-            Server-&gt;&gt;AI: 請求程式碼分析 (Code Analysis)
-            AI--&gt;&gt;Server: 回傳 JSON 評分 (Score &amp; Suggestions)
-            Server-&gt;&gt;Server: 紀錄成績至 Google Sheets
-            Server--&gt;&gt;UI: 回傳 成功狀態 + AI 評語
-            UI-&gt;&gt;User: 顯示雷達圖與建議
-        end
+        U-&gt;&gt;F: 請求 AI 分析
+        F-&gt;&gt;S: POST /api/ai/analyze
+        S-&gt;&gt;AI: 發送程式碼與結果
+        AI--&gt;&gt;S: 回傳評分與建議 (JSON)
+        S--&gt;&gt;F: 顯示分析結果
+    else 檢查失敗
+        S--&gt;&gt;F: 回傳安全性錯誤
     end
+
+    Note over U, DB: 3. 成績提交流程
+    U-&gt;&gt;F: 提交成績
+    F-&gt;&gt;S: POST /api/scores/submit
+    par 雙重寫入
+        S-&gt;&gt;DB: 呼叫 Google Apps Script 寫入
+        S-&gt;&gt;S: 寫入 tool/scores_backup.json (本地備份)
+    end
+    S--&gt;&gt;F: 回傳提交狀態
 </code></pre>
 <h2>資料夾結構說明 (Folder Structure)</h2>
-<table>
-<thead>
-<tr>
-<th>資料夾/檔案</th>
-<th>類型</th>
-<th>說明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>VibeCodingLab/</code></td>
-<td>Root</td>
-<td>專案根目錄</td>
-</tr>
-<tr>
-<td>├── <code>server.py</code></td>
-<td>File</td>
-<td><strong>核心後端程式</strong>。負責啟動 Flask Server、處理 API、整合 Gemini 與執行 Python 程式碼。</td>
-</tr>
-<tr>
-<td>├── <code>fetch_questions.py</code></td>
-<td>File</td>
-<td><strong>資料同步工具</strong>。用於從 Google Sheets 下載題目並更新至 <code>questions.json</code>。</td>
-</tr>
-<tr>
-<td>├── <code>frontend/</code></td>
-<td>Dir</td>
-<td><strong>前端程式碼目錄</strong>。</td>
-</tr>
-<tr>
-<td>│   ├── <code>index.html</code></td>
-<td>File</td>
-<td>網頁入口，包含主介面結構。</td>
-</tr>
-<tr>
-<td>│   ├── <code>script.js</code></td>
-<td>File</td>
-<td>前端核心邏輯 (IDE 整合、API 呼叫、狀態管理)。</td>
-</tr>
-<tr>
-<td>│   ├── <code>config.js</code></td>
-<td>File</td>
-<td>前端設定檔 (主要定義 API_URL)。</td>
-</tr>
-<tr>
-<td>│   └── <code>questions-manager.js</code></td>
-<td>File</td>
-<td>題目管理邏輯 (渲染題目列表、切換題目)。</td>
-</tr>
-<tr>
-<td>├── <code>api_keys.json</code></td>
-<td>File</td>
-<td><strong>敏感設定</strong>。儲存 Gemini API Keys 列表 (GitIgnore 建議)。</td>
-</tr>
-<tr>
-<td>├── <code>questions.json</code></td>
-<td>File</td>
-<td><strong>資料快取</strong>。從 Google Sheets 同步下來的題目資料。</td>
-</tr>
-<tr>
-<td>└── <code>verify_input_fix.py</code></td>
-<td>File</td>
-<td>輔助測試腳本。</td>
-</tr>
-</tbody>
-</table>
-<h2>核心模組與重要檔案 (Key Modules &amp; Files)</h2>
-<h3>1. Backend (<code>server.py</code>)</h3>
-<ul>
-<li><strong><code>execute_code</code></strong>: 核心沙箱函數。使用 <code>exec</code> 但配合 <code>validate_code_safety</code> (AST 檢查) 與 <code>builtins</code> 白名單，確保無法執行刪除檔案、網路請求等危險操作。</li>
-<li><strong><code>ai_check_code</code></strong>: 評分流程控制器。串接執行結果與 <code>get_gemini_model</code>，回傳結構化的 JSON 評分。</li>
-<li><strong><code>init_gspread_client</code></strong>: 負責與 Google Sheets 建立連線，保存學生成績。</li>
-</ul>
-<h3>2. Frontend (<code>frontend/script.js</code>)</h3>
-<ul>
-<li><strong><code>monacoEditor</code></strong>: 整合 Microsoft Monaco Editor (VS Code 核心)，提供語法高亮與自動完成。</li>
-<li><strong><code>aiCheck</code></strong>: 處理使用者點擊「AI 檢查」的非同步請求，並解析後端回傳的 JSON 更新 UI (包含雷達圖)。</li>
-</ul>
-<h3>3. Data Sync (<code>fetch_questions.py</code>)</h3>
-<ul>
-<li>獨立運作的腳本，透過公開的 Google Sheets CSV 匯出連結 (<code>SHEET_URL</code>) 解析並重新生成 <code>questions.json</code>。</li>
-</ul>
-<p>關係圖如下：</p>
-<pre><code class="language-mermaid">classDiagram
-    direction TB
-    class Server {
-        +execute_with_timeout()
-        +validate_code_safety()
-        +ai_analyze_code()
-    }
-    class Frontend {
-        +updateStatsDisplay()
-        +aiCheck()
-        +renderProbabilityChart()
-    }
-    class DataHandler {
-        +fetch_questions_from_sheet()
-        +save_questions_to_file()
-    }
-
-    Server --&gt; Frontend : Provides API
-    Frontend --&gt; Server : Consumes API
-    DataHandler ..&gt; Server : Generates questions.json
-    Server ..&gt; GoogleSheets : Writes Scores
+<pre><code>VibeCodingLab/14/
+├── frontend/                  # 前端靜態資源
+│   ├── index.html             # 主頁面
+│   ├── styles.css             # 樣式表
+│   ├── app.js                 # 主要邏輯 (Vue/Vanilla JS)
+│   ├── api.js                 # API 封裝
+│   ├── config.js              # 前端設定
+│   └── lib/                   # 第三方函式庫
+├── tool/                      # 工具與資料模組
+│   ├── fetch_questions.py     # Google Sheets 題目抓取邏輯
+│   ├── prompts.json           # AI 提示詞模板設定
+│   ├── questions.json         # 題目資料快取
+│   └── scores_backup.json     # 成績本地備份
+├── server.py                  # 後端核心程式 (Flask App)
+├── config.json                # 後端設定檔 (API Keys 等)
+├── requirements.txt           # Python 套件依賴清單
+└── service-account.json       # Google 服務帳號憑證 (選用)
 </code></pre>
+<h2>核心模組與重要檔案 (Key Modules &amp; Files)</h2>
+<h3>1. <code>server.py</code> (後端核心)</h3>
+<ul>
+<li><strong>職責</strong>：啟動 Web Server，處理所有 API 路由。</li>
+<li><strong>關鍵功能</strong>：</li>
+<li><code>validate_code_safety(code)</code>: 使用 AST (抽象語法樹) 檢查程式碼，禁止危險函數 (如 <code>open</code>, <code>eval</code>, <code>os</code> 等)。</li>
+<li><code>execute_with_timeout</code>: 在獨立執行緒中執行學生程式碼，防止無窮迴圈 (預設 5 秒超時)。</li>
+<li><code>start_interactive_execution</code>: 處理互動式程式執行 (支援 <code>input()</code> 函數)。</li>
+<li><code>/api/ai/*</code>: 處理與 OpenAI 的串接，包含分析、檢查與建議。</li>
+</ul>
+<h3>2. <code>tool/fetch_questions.py</code> (題目載入器)</h3>
+<ul>
+<li><strong>職責</strong>：從 Google Sheets CSV 匯出連結讀取題目資料。</li>
+<li><strong>邏輯</strong>：</li>
+<li>解析 CSV 格式，處理用雙引號包夾的欄位。</li>
+<li>自動判斷題目難度與學習目標。</li>
+<li>將資料結構化並儲存為 JSON。</li>
+</ul>
+<h3>3. <code>frontend/app.js</code> (前端邏輯)</h3>
+<ul>
+<li><strong>職責</strong>：管理使用者介面互動。</li>
+<li><strong>功能</strong>：</li>
+<li>程式碼編輯器 (CodeMirror/Monaco) 初始化。</li>
+<li>調用後端 API 執行程式並顯示結果。</li>
+<li>渲染 Markdown 格式的 AI 回饋。</li>
+</ul>
 <h2>安裝與環境需求 (Installation &amp; Requirements)</h2>
 <h3>系統需求</h3>
 <ul>
-<li><strong>OS</strong>: Windows / macOS / Linux</li>
-<li><strong>Python</strong>: 3.8+</li>
-<li><strong>Google Cloud API Access</strong>: 需具備 Gemini API Key。</li>
+<li>Python 3.8 或以上版本</li>
+<li>網路連線 (需存取 Google Sheets 與 OpenAI API)</li>
 </ul>
-<h3>相依套件 (Dependencies)</h3>
-<p>請參考專案中的 import 需求，主要套件如下：
-- <code>flask</code> (Web Framework)
-- <code>flask-cors</code> (CORS Support)
-- <code>google-generativeai</code> (Gemini AI SDK)
-- <code>gspread</code> (Google Sheets API)
-- <code>oauth2client</code> (Google Auth)</p>
+<h3>相依套件</h3>
+<p>請參考 <code>requirements.txt</code>：</p>
+<pre><code class="language-text">flask
+flask-cors
+openai
+requests
+gspread
+google-auth
+</code></pre>
 <h3>安裝步驟</h3>
 <ol>
-<li>建立 Python 虛擬環境:
+<li>建立虛擬環境 (建議)：
    <code>bash
    python -m venv venv
    source venv/bin/activate  # Windows: venv\Scripts\activate</code></li>
-<li>安裝套件:
+<li>安裝套件：
    <code>bash
-   pip install flask flask-cors google-generativeai gspread oauth2client requests</code></li>
-<li>設定 API Keys:
-   確保 <code>api_keys.json</code> 存在且包含有效的 Gemini API Key 列表。</li>
+   pip install -r requirements.txt</code></li>
 </ol>
 <h2>使用方式 (How to Use)</h2>
-<h3>1. 啟動後端</h3>
+<h3>1. 啟動伺服器</h3>
 <p>在專案根目錄執行：</p>
-<pre><code class="language-powershell">python server.py
+<pre><code class="language-bash">python server.py
 </code></pre>
-<p>伺服器預設會在 <code>http://localhost:5000</code> 啟動。</p>
-<h3>2. 啟動/開啟前端</h3>
+<p>成功啟動後，控制台會顯示：</p>
+<pre><code>[Vibe] Python 診斷平台 - OpenAI 版 (Model: gpt-4o-mini)
+ * Running on http://0.0.0.0:5000/
+</code></pre>
+<h3>2. 操作介面</h3>
 <ul>
-<li><strong>本地開發</strong>: 直接用瀏覽器開啟 <code>frontend/index.html</code>。</li>
-<li><strong>遠端/手機測試</strong>: </li>
-<li>使用 ngrok 對映後端: <code>ngrok http 5000</code></li>
-<li>修改 <code>frontend/config.js</code> 中的 <code>API_URL</code> 為 ngrok 網址。</li>
+<li>打開瀏覽器訪問 <code>http://localhost:5000</code> (或 <code>index.html</code> 直接打開，視前端配置而定)。</li>
+<li>選擇左側題目列表。</li>
+<li>在中央編輯器輸入 Python 程式碼。</li>
+<li>點擊「執行程式」查看輸出。</li>
+<li>點擊「AI 分析」獲取評分與建議。</li>
 </ul>
-<h3>3. 操作流程</h3>
-<ol>
-<li>瀏覽器開啟頁面，左側選擇題目。</li>
-<li>中間編輯區撰寫 Python 程式碼。</li>
-<li>點擊 <strong>"執行程式碼"</strong> 進行單純測試 (不消耗 API Quota)。</li>
-<li>點擊 <strong>"AI 檢查"</strong> 進行評分與獲取建議 (需通過正確性測試)。</li>
-</ol>
 <h2>設定說明 (Configuration)</h2>
-<table>
-<thead>
-<tr>
-<th>設定檔</th>
-<th>關鍵參數</th>
-<th>說明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>frontend/config.js</code></td>
-<td><code>API_URL</code></td>
-<td>指定後端 API 地址，支援 localhost 或 ngrok URL。</td>
-</tr>
-<tr>
-<td><code>api_keys.json</code></td>
-<td><code>api_keys</code></td>
-<td>JSON string 陣列，存放多組 Gemini API Keys 以供輪替使用。</td>
-</tr>
-<tr>
-<td><code>server.py</code></td>
-<td><code>SCORES_SPREADSHEET_ID</code></td>
-<td>設定 Google Sheets 的 ID，用於成績紀錄。</td>
-</tr>
-<tr>
-<td><code>server.py</code></td>
-<td><code>SAFE_BUILTINS</code></td>
-<td>允許使用者使用的 Python 內建函數白名單。</td>
-</tr>
-</tbody>
-</table>
-<h2>開發者指南 (Developer Guide)</h2>
-<ol>
-<li><strong>修改題目</strong>:</li>
-<li>不建議直接修改 <code>questions.json</code>。</li>
-<li>
-<p>請更新 Google Sheets 來源，再執行 <code>python fetch_questions.py</code> 同步最新題目。</p>
-</li>
-<li>
-<p><strong>擴充安全性</strong>:</p>
-</li>
-<li>
-<p>若需開放更多 Python 模組 (如 <code>math</code>, <code>random</code>)，需修改 <code>server.py</code> 中的 <code>safe_import</code> 邏輯與 <code>SAFE_BUILTINS</code> 白名單。</p>
-</li>
-<li>
-<p><strong>前端除錯</strong>:</p>
-</li>
-<li>使用 Chrome DevTools Console 查看 API 回傳的錯誤訊息。</li>
-<li>注意 CORS 問題，確保 <code>flask_cors</code> 設定正確。</li>
-</ol>
-<h2>已知限制與待辦事項 (Limitations &amp; TODO)</h2>
-<h3>已知限制 (Limitations)</h3>
+<h3>後端設定 (<code>config.json</code>)</h3>
+<p>此檔案需自行建立，格式如下：</p>
+<pre><code class="language-json">{
+  &quot;openai_api_key&quot;: &quot;sk-proj-...&quot;,
+  &quot;model_name&quot;: &quot;gpt-4o-mini&quot;
+}
+</code></pre>
+<h3>提示詞設定 (<code>tool/prompts.json</code>)</h3>
+<p>定義 AI 分析時使用的 System Prompt 與 User Prompt 模板，可熱更新。</p>
 <ul>
-<li><strong>程式碼沙箱</strong>: 目前僅透過 Python <code>exec</code> 與 AST 檢查實作軟隔離，並非 Docker 級別的強隔離，請勿在生產環境直接暴露給未受信任的公開網路。</li>
-<li><strong>UI 狀態</strong>: 重新整理頁面後，未保存的程式碼可能會遺失 (Local Storage 實作依賴前端邏輯)。</li>
-<li><strong>API 額度</strong>: 高頻率請求可能觸發 Gemini API Rate Limit，後端雖有 Key 輪替機制，但仍受限於配額。</li>
+<li><code>analyze_prompt</code>: 用於 <code>/api/ai/analyze</code></li>
+<li><code>suggest_prompt</code>: 用於 <code>/api/ai/suggest</code></li>
 </ul>
-<h3>待辦事項 (TODO)</h3>
+<h2>開發者指南 (Developer Guide)</h2>
+<h3>修改建議</h3>
+<ol>
+<li>
+<p><strong>安全性調整</strong>：</p>
+</li>
+<li>
+<p>若需開放更多 Python 模組，請修改 <code>server.py</code> 中的 <code>ALLOWED_MODULES</code> 集合。</p>
+</li>
+<li><strong>警告</strong>：請勿隨意移除 <code>validate_code_safety</code> 中的檢查，以免造成伺服器安全風險。</li>
+<li>
+<p><strong>題目來源</strong>：</p>
+</li>
+<li>
+<p>目前指向特定的 Google Sheet URL (在 <code>tool/fetch_questions.py</code> 中定義)。</p>
+</li>
+<li>若需更換題庫，請修改 <code>SHEET_URL</code> 常數。</li>
+</ol>
+<h3>擴充功能</h3>
 <ul>
-<li>[ ] 實作 Docker 容器化部署，增強沙箱安全性。</li>
-<li>[ ] 增加使用者登入系統，區分不同學生的學習歷程。</li>
-<li>[ ] 支援更多程式語言 (如 JavaScript, C++)。</li>
-<li>[ ] 優化前端 Mobile 體驗，改進虛擬鍵盤遮擋問題。</li>
+<li><strong>新增 API</strong>：在 <code>server.py</code> 中使用 <code>@app.route</code> 裝飾器新增路由。</li>
+<li><strong>前端調整</strong>：主要修改 <code>frontend/app.js</code> 與 <code>frontend/index.html</code>。</li>
+</ul>
+<h2>已知限制與待辦事項 (Limitations &amp; TODO)</h2>
+<ul>
+<li>
+<p><strong>安全性限制</strong>：</p>
+</li>
+<li>
+<p>目前僅支援標準函式庫的子集 (math, random, datetime 等)。</p>
+</li>
+<li>無法執行需要檔案系統讀寫的操作。</li>
+<li><code>input()</code> 互動功能在某些瀏覽器環境下可能會有延遲。</li>
+<li>
+<p><strong>TODO</strong>：</p>
+</li>
+<li>
+<p>[ ] 實作使用者登入系統。</p>
+</li>
+<li>[ ] 將成績儲存改為真正的資料庫 (如 SQLite/PostgreSQL)，而非依賴 Google Sheets。</li>
+<li>[ ] 增強沙箱隔離機制 (考慮使用 Docker 或更底層的隔離)。</li>
 </ul>
 <h2>補充說明 (Notes)</h2>
 <ul>
-<li>本專案為了教學便利，將部分 API Key 與設定檔保留在專案結構中 (如 <code>api_keys.json</code>)，在正式開源或部署時請務必加入 <code>.gitignore</code>。</li>
-<li>後端 <code>init_gspread_client</code> 支援 Service Account 與 API Key 兩種模式，請依據部屬環境選擇。</li>
+<li><strong>成績備份機制</strong>：系統會優先嘗試寫入 Google Apps Script Web App。若失敗，會自動降級並寫入 <code>tool/scores_backup.json</code>，確保資料不丟失。</li>
+<li><strong>快取機制</strong>：題目資料預設快取 30 分鐘 (<code>server.py</code> 中的 <code>CACHE_EXPIRE_MINUTES</code>)，可透過 <code>/api/questions/refresh</code> 強制更新。</li>
 </ul>

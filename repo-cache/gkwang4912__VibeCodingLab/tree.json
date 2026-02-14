@@ -4,12 +4,26 @@
   "children": [
     {
       "type": "dir",
-      "name": "docs",
+      "name": "design",
+      "children": [
+        {
+          "type": "file",
+          "name": "pencil-new.pen"
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "frontend",
       "children": [
         {
           "type": "dir",
           "name": "lib",
           "children": [
+            {
+              "type": "file",
+              "name": "editor.js"
+            },
             {
               "type": "file",
               "name": "github.min.css"
@@ -34,6 +48,14 @@
         },
         {
           "type": "file",
+          "name": "api.js"
+        },
+        {
+          "type": "file",
+          "name": "app.js"
+        },
+        {
+          "type": "file",
           "name": "config.js"
         },
         {
@@ -42,25 +64,31 @@
         },
         {
           "type": "file",
-          "name": "questions-manager.js"
-        },
-        {
-          "type": "file",
-          "name": "script.js"
-        },
-        {
-          "type": "file",
           "name": "styles.css"
         }
       ]
     },
     {
-      "type": "file",
-      "name": "\"\\346\\214\\207\\344\\273\\244.txt\""
-    },
-    {
-      "type": "file",
-      "name": "api_keys.json"
+      "type": "dir",
+      "name": "tool",
+      "children": [
+        {
+          "type": "file",
+          "name": "fetch_questions.py"
+        },
+        {
+          "type": "file",
+          "name": "prompts.json"
+        },
+        {
+          "type": "file",
+          "name": "questions.json"
+        },
+        {
+          "type": "file",
+          "name": "scores_backup.json"
+        }
+      ]
     },
     {
       "type": "file",
@@ -68,19 +96,11 @@
     },
     {
       "type": "file",
-      "name": "fetch_questions.py"
-    },
-    {
-      "type": "file",
-      "name": "prompts.json"
-    },
-    {
-      "type": "file",
-      "name": "questions.json"
-    },
-    {
-      "type": "file",
       "name": "README.md"
+    },
+    {
+      "type": "file",
+      "name": "requirements.txt"
     },
     {
       "type": "file",
@@ -89,10 +109,6 @@
     {
       "type": "file",
       "name": "server.py"
-    },
-    {
-      "type": "file",
-      "name": "verify_input_fix.py"
     }
   ]
 }
