@@ -4,22 +4,18 @@
   "children": [
     {
       "type": "dir",
-      "name": "backend",
+      "name": "\"backend",
       "children": [
         {
-          "type": "dir",
-          "name": "__pycache__",
-          "children": [
-            {
-              "type": "file",
-              "name": "gemini_chat.cpython-310.pyc"
-            },
-            {
-              "type": "file",
-              "name": "xtts_v2.cpython-310.pyc"
-            }
-          ]
-        },
+          "type": "file",
+          "name": "\\346\\214\\207\\344\\273\\244.txt\""
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "backend",
+      "children": [
         {
           "type": "file",
           "name": "api_keys.json"
@@ -77,5 +73,4 @@
       "name": "README.md"
     }
   ]
-
 }

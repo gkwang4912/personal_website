@@ -98,10 +98,6 @@
     },
     {
       "type": "file",
-      "name": "test.py"
-    },
-    {
-      "type": "file",
       "name": "testModel.py"
     }
   ]
