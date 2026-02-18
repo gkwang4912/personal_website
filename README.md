@@ -11,7 +11,6 @@
 
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://gkwang4912.github.io/personal_website/)
 
-
 ---
 
 ## 系統架構說明（Architecture Overview）
@@ -20,7 +19,7 @@
 
 1. **前端展示層**：純 HTML + CSS + JavaScript 的靜態網頁，分為首頁（`index.html`）與專案頁（`projects.html`）兩個主要頁面，共用 `styles.css` 與 `script.js`
 2. **資料層**：專案資料以離線快取的形式儲存在 `repo-cache/` 資料夾中（包含每個 Repository 的 `readme.html`、`meta.json`、`tree.json`），並由 `data.js` 將所有資料打包為全域變數 `window.SITE_DATA`，供前端直接讀取
-3. **自動化建置層**：GitHub Actions 工作流程（`update-repo-cache.yml`）定時自動拉取所有公開 Repository 的快照，透過 Python 腳本（`build_repo_cache.py`）產生快取檔案，再由 `pack_data.py` 打包成 `data.js`
+3. **自動化建置層**：GitHub Actions 工作流程（`update-repo-cache.yml`）定時或在推送變更時自動拉取所有公開 Repository 的快照，透過 Python 腳本（`build_repo_cache.py`）產生快取檔案，再由 `pack_data.py` 打包成 `data.js`
 
 ### 模組間依賴關係
 
@@ -79,7 +78,7 @@ graph TD
 
 ### 資料建置流程
 
-1. GitHub Actions 按 cron 排程（每日 UTC 03:10）或手動觸發
+1. GitHub Actions 按 cron 排程（每日 UTC 16:00，台北時間午夜 00:00）、推送至 main 分支時、或手動觸發
 2. 使用 GitHub API 取得使用者 `gkwang4912` 的所有公開、非 fork、非歸檔 Repository 清單（排除 `personal_website` 本身）
 3. 逐一 shallow clone（`--depth=1`）各 Repository 至 `_repos/` 暫存目錄
 4. `build_repo_cache.py` 掃描 `_repos/`，為每個 Repository 產生：目錄樹（`tree.json`）、README HTML（`readme.html`）、中繼資料（`meta.json`），以及總索引（`project.json`）
@@ -181,17 +180,17 @@ personal_website/
 
 包含以下功能模組：
 
-| 模組區段               | 功能                                                              |
-| ---------------------- | ----------------------------------------------------------------- |
-| Navigation             | 導航列滾動效果、行動選單切換、錨點平滑捲動、當前區段高亮          |
-| Reveal Animations      | 基於 IntersectionObserver 的捲動入場動畫（左移/右移/上移）        |
-| Skill Bars Animation   | 技能進度條動態填充動畫                                            |
-| Counter Animation      | 統計數字計數動畫                                                  |
-| Particle Animation     | Hero 區塊背景粒子效果                                             |
-| Typing Effect          | Hero 標語打字機效果                                               |
-| Experience CSV Loading | CSV 解析、資料讀取、經歷列表動態渲染（含顏色標籤）                |
-| Projects Loading       | 專案清單讀取、卡片建立、progressive loading、背景預取（prefetch） |
-| Modal Logic            | 專案詳情彈窗邏輯（開啟/關閉/Tab 切換/Mermaid 渲染/README 渲染）   |
+| 模組區段               | 功能                                                                         |
+| ---------------------- | ---------------------------------------------------------------------------- |
+| Navigation             | 導航列滾動效果、行動選單切換、錨點平滑捲動、當前區段高亮                     |
+| Reveal Animations      | 基於 IntersectionObserver 的捲動入場動畫（左移/右移/上移）                   |
+| Skill Bars Animation   | 技能進度條動態填充動畫                                                       |
+| Counter Animation      | 統計數字計數動畫                                                             |
+| Particle Animation     | Hero 區塊背景粒子效果                                                        |
+| Typing Effect          | Hero 標語打字機效果                                                          |
+| Experience CSV Loading | CSV 解析、資料讀取、經歷列表動態渲染（含顏色標籤）                           |
+| Projects Loading       | 專案清單讀取、卡片建立、progressive loading、背景預取（prefetch）            |
+| Modal Logic            | 專案詳情彈窗邏輯（開啟/關閉/Tab 切換/Mermaid 渲染/README 渲染/圖片尺寸修正） |
 
 ### `styles.css` -- 全站樣式
 
@@ -218,7 +217,7 @@ personal_website/
 
 ### `.github/workflows/update-repo-cache.yml` -- CI/CD 工作流程
 
-定時或手動觸發的 GitHub Actions 工作流程，執行以下步驟：checkout 本專案、透過 GitHub API 取得所有公開 repo 清單（排除 fork/archived/personal_website）、shallow clone 各 repo、執行 `build_repo_cache.py`、commit 並 push 變更。
+定時、推送至 main 分支時、或手動觸發的 GitHub Actions 工作流程，執行以下步驟：checkout 本專案、透過 GitHub API 取得所有公開 repo 清單（排除 fork/archived/personal_website）、shallow clone 各 repo、執行 `build_repo_cache.py` 產生快取、執行 `pack_data.py` 打包 `data.js`、commit 並 push 變更。推送觸發器使用 `paths-ignore` 排除 `repo-cache/` 和 `data.js` 以避免自我觸發迴圈。
 
 ```mermaid
 graph LR
@@ -348,7 +347,11 @@ pip install markdown
 
 ### 更新專案快取（自動）
 
-推送至 GitHub 後，GitHub Actions 會依照排程（每日 UTC 03:10，約台北時間 11:10）自動執行上述流程，也可在 GitHub Actions 頁面手動觸發 `workflow_dispatch`。
+GitHub Actions 會在以下情況自動執行上述流程：
+
+- **排程**：每日 UTC 16:00（台北時間午夜 00:00）
+- **推送觸發**：推送至 main 分支時自動執行（排除 `repo-cache/` 和 `data.js` 的變更以避免迴圈觸發）
+- **手動觸發**：在 GitHub Actions 頁面觸發 `workflow_dispatch`
 
 ### 修改經歷資料
 
@@ -372,7 +375,7 @@ type,year,title,venue,link
 | ----------------- | ---------------------------------------------------- | -------------------------------------------------------- |
 | GitHub 使用者名稱 | `.github/workflows/update-repo-cache.yml` 第 16 行 | `USERNAME: gkwang4912`                                 |
 | 排除的 Repository | `.github/workflows/update-repo-cache.yml` 第 17 行 | `EXCLUDE_REPO: personal_website`                       |
-| 排程時間          | `.github/workflows/update-repo-cache.yml` 第 7 行  | `cron: "10 3 * * *"`                                   |
+| 排程時間          | `.github/workflows/update-repo-cache.yml` 第 7 行  | `cron: "0 16 * * *"`（台北時間午夜 00:00）             |
 | 個人資訊          | `index.html`                                       | 姓名、角色、學校、Email 等                               |
 | 技能項目與百分比  | `index.html` 第 148-195 行                         | 技能名稱與 `data-progress` 屬性                        |
 | 統計數據          | `index.html` 第 244-261 行                         | `data-count` 屬性                                      |
@@ -423,7 +426,7 @@ type,year,title,venue,link
 - `styles.css` 為單一大型檔案（約 62KB），未進行模組化拆分
 - `projects.html` 頁尾的版權文字仍為「您的姓名」而非實際姓名，與 `index.html` 不一致
 - 「下載履歷」按鈕（`index.html` 第 130 行）的 `href` 設定為 `#`，尚未關聯實際的履歷檔案
-- GitHub Actions 工作流程中未包含執行 `pack_data.py` 的步驟，`data.js` 的更新可能需要手動處理或另行安排
+- README 中嵌入的圖片若使用相對路徑，在 Modal 中將無法正確載入（僅 GitHub User Attachments 等完整 URL 可正常顯示）
 - 專案頁的 Modal 內 README 渲染依賴外部 CDN（Mermaid.js），離線環境下 Mermaid 圖表將無法正常顯示
 - `data.js` 檔案約 199KB，包含所有專案的完整資料，隨著專案增加會持續膨脹
 
