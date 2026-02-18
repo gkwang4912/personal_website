@@ -9,6 +9,9 @@
 - **使用對象**：任何對擁有者背景、研究或專案感興趣的訪客（招募方、研究合作者、學術同儕等）
 - **專案性質**：靜態網站應用（Static Site），透過 GitHub Pages 部署，搭配 GitHub Actions 自動化資料更新
 
+[![Website](https://img.shields.io/badge/Website-Visit-blue)](https://gkwang4912.github.io/personal_website/)
+
+
 ---
 
 ## 系統架構說明（Architecture Overview）
