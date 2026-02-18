@@ -3,8 +3,8 @@ name: Update repo cache (tree + README)
 on:
   workflow_dispatch:
   schedule:
-    # 每天 03:10 UTC（台北時間約 11:10）
-    - cron: "10 3 * * *"
+    # 每天 16:00 UTC（台北時間午夜 00:00）
+    - cron: "0 16 * * *"
   push:
     branches: [main]
     paths-ignore:
