@@ -84,11 +84,15 @@ jobs:
         run: |
           python scripts/build_repo_cache.py
 
+      - name: Pack data.js
+        run: |
+          python scripts/pack_data.py
+
       - name: Commit & push if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add repo-cache
+          git add repo-cache data.js
           if git diff --cached --quiet; then
             echo "No changes."
           else
