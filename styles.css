@@ -2141,8 +2141,11 @@ img {
 
 .markdown-body img {
     max-width: 100%;
-    box-sizing: content-box;
+    height: auto;
+    box-sizing: border-box;
     border-radius: 6px;
+    image-rendering: auto;
+    object-fit: contain;
 }
 
 .markdown-body table {
