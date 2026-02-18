@@ -824,6 +824,12 @@ function openProjectModal(folderName) {
 function renderReadme(html) {
     readmeContent.innerHTML = html;
 
+    // 移除圖片上的固定寬高屬性，讓 CSS 控制顯示尺寸，避免壓縮模糊
+    readmeContent.querySelectorAll('img').forEach((img) => {
+        img.removeAttribute('width');
+        img.removeAttribute('height');
+    });
+
     // Re-highlight code blocks if highlight.js is available
     if (window.hljs) {
         readmeContent.querySelectorAll('pre code').forEach((block) => {
