@@ -1,0 +1,366 @@
+{
+  "type": "dir",
+  "name": "",
+  "children": [
+    {
+      "type": "dir",
+      "name": "1_suround_video",
+      "children": [
+        {
+          "type": "file",
+          "name": "config.py"
+        },
+        {
+          "type": "file",
+          "name": "main.py"
+        },
+        {
+          "type": "file",
+          "name": "requirements.txt"
+        },
+        {
+          "type": "file",
+          "name": "VideoSplat_360.json"
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "2_colmap",
+      "children": [
+        {
+          "type": "file",
+          "name": "__init__.py"
+        },
+        {
+          "type": "file",
+          "name": "core.py"
+        },
+        {
+          "type": "file",
+          "name": "main.py"
+        },
+        {
+          "type": "file",
+          "name": "nodes.py"
+        },
+        {
+          "type": "file",
+          "name": "README.md"
+        },
+        {
+          "type": "file",
+          "name": "requirements.txt"
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "3_360brush",
+      "children": [
+        {
+          "type": "file",
+          "name": "config.py"
+        },
+        {
+          "type": "file",
+          "name": "main.py"
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "4_ply_ball_camera",
+      "children": [
+        {
+          "type": "dir",
+          "name": "scripts",
+          "children": [
+            {
+              "type": "file",
+              "name": "validate_project.py"
+            }
+          ]
+        },
+        {
+          "type": "dir",
+          "name": "src",
+          "children": [
+            {
+              "type": "file",
+              "name": "__init__.py"
+            },
+            {
+              "type": "file",
+              "name": "camera.py"
+            },
+            {
+              "type": "file",
+              "name": "export.py"
+            },
+            {
+              "type": "file",
+              "name": "gaussian.py"
+            },
+            {
+              "type": "file",
+              "name": "pipeline.py"
+            },
+            {
+              "type": "file",
+              "name": "render.py"
+            },
+            {
+              "type": "file",
+              "name": "source_camera.py"
+            }
+          ]
+        },
+        {
+          "type": "file",
+          "name": "config.json"
+        },
+        {
+          "type": "file",
+          "name": "README.md"
+        },
+        {
+          "type": "file",
+          "name": "requirements.txt"
+        },
+        {
+          "type": "file",
+          "name": "run.py"
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "5_XYZ Orbit_Minimax",
+      "children": [
+        {
+          "type": "dir",
+          "name": "tests",
+          "children": [
+            {
+              "type": "file",
+              "name": "test_orbit_pipeline.py"
+            }
+          ]
+        },
+        {
+          "type": "dir",
+          "name": "workflows",
+          "children": [
+            {
+              "type": "file",
+              "name": "minimax_video_latent_refine.json"
+            },
+            {
+              "type": "file",
+              "name": "minimax_video_latent_refine_api.json"
+            }
+          ]
+        },
+        {
+          "type": "file",
+          "name": "config.json"
+        },
+        {
+          "type": "file",
+          "name": "main.py"
+        },
+        {
+          "type": "file",
+          "name": "README.md"
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "test",
+      "children": [
+        {
+          "type": "dir",
+          "name": "5latitude",
+          "children": [
+            {
+              "type": "dir",
+              "name": "scripts",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "validate_project.py"
+                }
+              ]
+            },
+            {
+              "type": "dir",
+              "name": "src",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "__init__.py"
+                },
+                {
+                  "type": "file",
+                  "name": "project.py"
+                },
+                {
+                  "type": "file",
+                  "name": "validation.py"
+                }
+              ]
+            },
+            {
+              "type": "file",
+              "name": "config.json"
+            },
+            {
+              "type": "file",
+              "name": "README.md"
+            },
+            {
+              "type": "file",
+              "name": "requirements.txt"
+            },
+            {
+              "type": "file",
+              "name": "run.py"
+            }
+          ]
+        },
+        {
+          "type": "dir",
+          "name": "VGGSfM",
+          "children": [
+            {
+              "type": "file",
+              "name": "config.py"
+            },
+            {
+              "type": "file",
+              "name": "main.py"
+            },
+            {
+              "type": "file",
+              "name": "README.md"
+            },
+            {
+              "type": "file",
+              "name": "run_wsl.sh"
+            },
+            {
+              "type": "file",
+              "name": "setup_wsl.sh"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "XYZ Orbit_Viewer",
+      "children": [
+        {
+          "type": "dir",
+          "name": "frontend",
+          "children": [
+            {
+              "type": "dir",
+              "name": "src",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "camera-math.js"
+                },
+                {
+                  "type": "file",
+                  "name": "image-orbit-controller.js"
+                },
+                {
+                  "type": "file",
+                  "name": "labels.js"
+                },
+                {
+                  "type": "file",
+                  "name": "main.js"
+                },
+                {
+                  "type": "file",
+                  "name": "path-orientation.js"
+                },
+                {
+                  "type": "file",
+                  "name": "ply-orbit-viewer.js"
+                },
+                {
+                  "type": "file",
+                  "name": "styles.css"
+                }
+              ]
+            },
+            {
+              "type": "file",
+              "name": "index.html"
+            }
+          ]
+        },
+        {
+          "type": "dir",
+          "name": "tests",
+          "children": [
+            {
+              "type": "file",
+              "name": "path-orientation.test.mjs"
+            },
+            {
+              "type": "file",
+              "name": "test_app.py"
+            }
+          ]
+        },
+        {
+          "type": "file",
+          "name": ".gitignore"
+        },
+        {
+          "type": "file",
+          "name": "app.py"
+        },
+        {
+          "type": "file",
+          "name": "config.json"
+        },
+        {
+          "type": "file",
+          "name": "package-lock.json"
+        },
+        {
+          "type": "file",
+          "name": "package.json"
+        },
+        {
+          "type": "file",
+          "name": "README.md"
+        },
+        {
+          "type": "file",
+          "name": "vite.config.js"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": ".gitattributes"
+    },
+    {
+      "type": "file",
+      "name": ".gitignore"
+    },
+    {
+      "type": "file",
+      "name": "README.md"
+    }
+  ]
+}

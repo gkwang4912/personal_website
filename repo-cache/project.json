@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-06T20:49:56.794392+00:00",
-  "count": 12,
+  "generated_at": "2026-10-07T21:04:11.120664+00:00",
+  "count": 13,
   "repos": [
     {
       "owner": "gkwang4912",
@@ -85,6 +85,13 @@
       "slug": "gkwang4912__VibeCodingLab",
       "path": "repo-cache/gkwang4912__VibeCodingLab",
       "head": "3a2ab0d63a2e66bafc3a8d05401f93d0739a9194"
+    },
+    {
+      "owner": "gkwang4912",
+      "repo": "VideoSplat",
+      "slug": "gkwang4912__VideoSplat",
+      "path": "repo-cache/gkwang4912__VideoSplat",
+      "head": "96a8a1a3c02f2e38d8d74d5198cb898d6f425f6d"
     }
   ]
 }
