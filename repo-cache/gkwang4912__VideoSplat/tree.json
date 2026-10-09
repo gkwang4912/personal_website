@@ -136,7 +136,7 @@
     },
     {
       "type": "dir",
-      "name": "5_XYZ Orbit_Minimax",
+      "name": "5_XYZ Orbit_VideoModel",
       "children": [
         {
           "type": "dir",
@@ -154,11 +154,11 @@
           "children": [
             {
               "type": "file",
-              "name": "minimax_video_latent_refine.json"
+              "name": "video_model_latent_refine.json"
             },
             {
               "type": "file",
-              "name": "minimax_video_latent_refine_api.json"
+              "name": "video_model_latent_refine_api.json"
             }
           ]
         },
@@ -173,6 +173,44 @@
         {
           "type": "file",
           "name": "README.md"
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "docs",
+      "children": [
+        {
+          "type": "dir",
+          "name": "assets",
+          "children": [
+            {
+              "type": "dir",
+              "name": "demo",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "character-2-3d.gif"
+                },
+                {
+                  "type": "file",
+                  "name": "character-2-3d.mp4"
+                },
+                {
+                  "type": "file",
+                  "name": "character-2-orbit.gif"
+                },
+                {
+                  "type": "file",
+                  "name": "character-2-orbit.mp4"
+                },
+                {
+                  "type": "file",
+                  "name": "character-2-source.webp"
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -361,6 +399,10 @@
     {
       "type": "file",
       "name": "README.md"
+    },
+    {
+      "type": "file",
+      "name": "README_EN.md"
     }
   ]
 }

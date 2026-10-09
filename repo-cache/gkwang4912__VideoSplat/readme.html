@@ -1,80 +1,106 @@
 <h1>VideoSplat</h1>
+<p align="right">
+  <a href="./README.md"><img src="./docs/assets/ui/lang-zh.svg" alt="中文" height="30"></a>
+  <a href="./README_EN.md"><img src="./docs/assets/ui/lang-en.svg" alt="English" height="30"></a>
+</p>
+
 <h2>專案總覽（Project Overview）</h2>
-<p>VideoSplat 是一組以單張角色影像為起點的研究型工具鏈。它先透過 ComfyUI 與 MiniMax H3 產生角色 360 度環繞影片及遮罩，再將影片轉為可供 COLMAP 與 Brush 使用的多視角資料集，訓練 3D Gaussian Splatting（3DGS）角色。完成初始重建後，系統會以第一張已註冊影格建立固定的三維相機座標，渲染三個完整環與十二條 90 度相機路徑，並可再次透過 ComfyUI 在 latent 空間細化影像，產生已知相機姿態的第二階段 Brush/COLMAP 資料集。</p>
-<p>本專案解決的核心問題，是把生成式影片提供的跨視角影格轉成可驗證、可重建且可追溯相機姿態的 3DGS 資料。研究計畫中的目標使用者是進行單張影像三維角色、多視角生成、3DGS 重建與後續 Gaussian-to-Mesh／角色動畫研究的工程師或研究者。</p>
-<p>專案性質是以 Python 為主的研究工具鏈。五個主要步驟均以 Python 作為入口與流程控制，另包含 ComfyUI JSON 工作流；只有獨立的本機 Viewer 前端使用 JavaScript。它不是單一 library、常駐 service 或完整的一鍵式 app。</p>
+<p>VideoSplat 是一組以 Python 為主的研究工具鏈。系統從單張角色圖片出發，使用影片模型產生角色環繞影片，再經過遮罩清理、COLMAP 相機姿態估計與 Brush 訓練建立 3D Gaussian Splatting（3DGS）角色。初始模型完成後，系統會建立固定的三維相機軌跡，渲染水平、垂直與斜向環繞視角，供第二階段影像細化與 3DGS 重建使用。</p>
+<p>本專案解決的問題，是把生成式影片提供的跨視角影格轉成可驗證、可重建且具有可追溯相機姿態的三維資料。使用對象是研究單張影像三維化、多視角生成、3DGS 重建、Gaussian-to-Mesh 與角色動畫流程的工程師或研究者。專案性質是由五個 Python 處理步驟、ComfyUI 工作流及一個本機 Viewer 組成的研究工具。</p>
+<p>以下展示直接取自原始專案的角色 2。GIF 可在 GitHub README 內直接播放；下方亦保留完整 MP4。</p>
+<table>
+  <tr>
+    <th>原始角色圖片</th>
+    <th>生成式環繞影片</th>
+    <th>3DGS 模型渲染</th>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/demo/character-2-source.webp" width="260" alt="角色 2 原始圖片"></td>
+    <td><img src="docs/assets/demo/character-2-orbit.gif" width="260" alt="角色 2 環繞影片"></td>
+    <td><img src="docs/assets/demo/character-2-3d.gif" width="260" alt="角色 2 的 3DGS 水平環繞渲染"></td>
+  </tr>
+</table>
+
+<ul>
+<li><a href="docs/assets/demo/character-2-orbit.mp4">觀看完整環繞影片 MP4</a></li>
+<li><a href="docs/assets/demo/character-2-3d.mp4">觀看完整 3DGS 模型渲染 MP4</a></li>
+</ul>
 <h2>系統架構說明（Architecture Overview）</h2>
-<p>系統依資料責任分成五個管線階段與一個 Viewer。第一階段負責生成環繞影片與追蹤遮罩；第二階段負責抽幀、RGBA 清理、COLMAP 相機估計及品質驗證；第三階段以 Brush CLI 訓練初始 Gaussian PLY；第四階段固定 Gaussian，從第一個已註冊相機建立 canonical 座標、六個 anchors、三個環與十二條相機路徑；第五階段把路徑影片、參考圖及 camera JSON 送回 ComfyUI 細化，再輸出已知姿態的資料集。Viewer 讀取第四階段產生的 <code>path_graph.json</code>、相機 JSON、影像與 PLY，不參與訓練。</p>
-<p>模組間以檔案系統交換資料，沒有共享 Python package。主要資料契約是影片、RGBA PNG、COLMAP text model、Gaussian PLY、逐幀 camera JSON、<code>path_graph.json</code> 及 Nerfstudio <code>transforms.json</code>。</p>
+<p>五個主要步驟都以 Python 作為入口與流程控制。步驟一負責圖片到環繞影片與遮罩；步驟二負責抽幀、RGBA 清理、COLMAP 重建及品質驗證；步驟三呼叫 Brush CLI 訓練初始 Gaussian PLY；步驟四固定 Gaussian，依第一張已註冊影格建立 canonical 座標、六個 anchors、三個完整環與十二條相機路徑；步驟五把路徑影片、參考圖片及 camera JSON 送回影片模型工作流細化，再輸出已知姿態的 COLMAP 與 Brush 資料集。</p>
+<p>各模組以檔案系統交換資料，沒有共享的常駐服務。主要資料契約包括 MP4、RGBA PNG、COLMAP text model、Gaussian PLY、逐幀 camera JSON、<code>path_graph.json</code> 與 Nerfstudio <code>transforms.json</code>。</p>
 <pre><code class="language-mermaid">flowchart LR
-    A[單張角色影像] --&gt; M1[1_suround_video]
-    C1[ComfyUI MiniMax H3&lt;br/&gt;BiRefNet SAM3] &lt;--&gt; M1
-    M1 --&gt; V1[環繞影片與 mask 影片]
-    V1 --&gt; M2[2_colmap]
-    E1[FFmpeg FFprobe COLMAP] --&gt; M2
-    M2 --&gt; D1[RGBA images&lt;br/&gt;COLMAP sparse model]
-    D1 --&gt; M3[3_360brush]
-    E2[Brush CLI] --&gt; M3
-    M3 --&gt; PLY[Gaussian PLY]
-    PLY --&gt; M4[4_ply_ball_camera]
-    D1 --&gt; M4
-    M4 --&gt; CAM[三環 十二路徑&lt;br/&gt;images masks camera JSON]
-    CAM --&gt; M5[5_XYZ Orbit_Minimax]
-    A --&gt; M5
-    C2[ComfyUI latent refine workflow] &lt;--&gt; M5
-    M5 --&gt; D2[第二階段 COLMAP 與 Brush 資料集]
-    CAM --&gt; VIEW[viewer]
+    A[單張角色圖片] --&gt; S1[1_suround_video]
+    VM1[ComfyUI 影片模型&lt;br/&gt;去背與遮罩追蹤] &lt;--&gt; S1
+    S1 --&gt; V1[環繞影片與 mask 影片]
+    V1 --&gt; S2[2_colmap]
+    EXT1[FFmpeg FFprobe COLMAP] --&gt; S2
+    S2 --&gt; D1[RGBA images&lt;br/&gt;COLMAP sparse model]
+    D1 --&gt; S3[3_360brush]
+    EXT2[Brush CLI] --&gt; S3
+    S3 --&gt; PLY[Gaussian PLY]
+    PLY --&gt; S4[4_ply_ball_camera]
+    D1 --&gt; S4
+    S4 --&gt; CAM[三環 十二路徑&lt;br/&gt;images masks camera JSON]
+    CAM --&gt; S5[5_XYZ Orbit_VideoModel]
+    A --&gt; S5
+    VM2[ComfyUI 影片模型&lt;br/&gt;latent refinement] &lt;--&gt; S5
+    S5 --&gt; D2[第二階段 COLMAP 與 Brush 資料集]
+    CAM --&gt; VIEW[XYZ Orbit_Viewer]
     PLY --&gt; VIEW
 </code></pre>
 <h2>系統流程說明（System Flow）</h2>
-<p>主要執行流程如下。第二階段 COLMAP 驗證至少要求 80% 影像註冊率、300 度相機弧，並限制相鄰相機步進；單組失敗時批次模式會記錄失敗並繼續其他組。第四階段會驗證固定半徑、路徑角度、共用 anchor、一致的相機內參、Front 重投影、mask 格式與影片尺寸；驗證未通過時會停止該資料集。第五階段可由既有生成影片續跑，也可使用 <code>--prepare-only</code>、<code>--datasets-only</code> 或 <code>--consolidated-only</code> 跳過部分流程。</p>
+<p>步驟二的預設驗證要求至少 80% 影像註冊率、300 度相機弧，並限制相鄰相機步進。單組失敗時，批次模式會記錄失敗並繼續其他組。步驟四會驗證固定半徑、路徑角度、共用 anchor、一致的相機內參、Front 重投影、mask 格式與影片尺寸；驗證失敗時停止該資料集。步驟五可由既有生成影片續跑，也可透過命令列選項跳過生成或只建立資料集。</p>
 <pre><code class="language-mermaid">flowchart TD
-    S[放入單張角色影像] --&gt; G[產生 360 度影片與 mask]
+    S[放入單張角色圖片] --&gt; G[影片模型產生環繞影片與 mask]
     G --&gt; F[FFmpeg 均勻抽幀]
-    F --&gt; R[清理 mask 建立 RGBA]
+    F --&gt; R[清理 mask 並建立 RGBA]
     R --&gt; C[COLMAP 特徵 配對 Mapper]
     C --&gt; Q{註冊率與相機弧通過}
-    Q -- 否 --&gt; X[記錄失敗&lt;br/&gt;批次處理下一組]
+    Q -- 否 --&gt; X[記錄失敗並處理下一組]
     Q -- 是 --&gt; B[Brush 訓練初始 3DGS]
     B --&gt; O[建立 canonical 座標與固定球面相機]
     O --&gt; T[渲染三個 360 度環與十二條路徑]
-    T --&gt; V{第四階段驗證通過}
+    T --&gt; V{相機與渲染驗證通過}
     V -- 否 --&gt; Y[停止並檢查 validation.json]
-    V -- 是 --&gt; L[ComfyUI latent 細化]
+    V -- 是 --&gt; L[影片模型進行 latent 細化]
     L --&gt; K[沿用已知 camera pose 建立資料集]
     K --&gt; Z[輸入 Brush 進行第二次 3DGS 重建]
 </code></pre>
-<p>模組與輸出契約如下；箭頭代表下游實際讀取的檔案，而非假想服務。</p>
+<p>模組與實際檔案契約如下。</p>
 <pre><code class="language-mermaid">flowchart TB
-    P01[1_suround_video&lt;br/&gt;Python video.mp4 mask.mp4]
-    P02[2_colmap&lt;br/&gt;Python images sparse/0]
-    P03[3_360brush&lt;br/&gt;Python exported PLY]
-    P04[4_ply_ball_camera&lt;br/&gt;Python path_graph cameras images masks]
-    P05[5_XYZ Orbit_Minimax&lt;br/&gt;Python COLMAP Nerfstudio datasets]
-    VW[XYZ Orbit_Viewer&lt;br/&gt;Python HTTP API and Vite frontend]
+    P1[1_suround_video&lt;br/&gt;Python&lt;br/&gt;video.mp4 mask.mp4]
+    P2[2_colmap&lt;br/&gt;Python&lt;br/&gt;images sparse/0]
+    P3[3_360brush&lt;br/&gt;Python&lt;br/&gt;Gaussian PLY]
+    P4[4_ply_ball_camera&lt;br/&gt;Python&lt;br/&gt;path_graph cameras images masks]
+    P5[5_XYZ Orbit_VideoModel&lt;br/&gt;Python&lt;br/&gt;COLMAP Nerfstudio datasets]
+    VW[XYZ Orbit_Viewer&lt;br/&gt;Python HTTP API&lt;br/&gt;JavaScript frontend]
 
-    P01 --&gt;|source and mask videos| P02
-    P02 --&gt;|brush_dataset_rgba_clean| P03
-    P02 --&gt;|first registered camera and frames| P04
-    P03 --&gt;|one top-level PLY per subject| P04
-    P04 --&gt;|path videos and camera JSON| P05
-    P04 --&gt;|path_graph.json images camera JSON| VW
-    P03 --&gt;|Gaussian PLY| VW
+    P1 --&gt;|來源影片與 mask 影片| P2
+    P2 --&gt;|brush_dataset_rgba_clean| P3
+    P2 --&gt;|第一張已註冊相機與影格| P4
+    P3 --&gt;|每組一個 PLY| P4
+    P4 --&gt;|路徑影片與 camera JSON| P5
+    P4 --&gt;|path_graph 與影像| VW
+    P3 --&gt;|Gaussian PLY| VW
 </code></pre>
 <h2>資料夾結構說明（Folder Structure）</h2>
 <pre><code class="language-text">VideoSplat/
 ├── README.md
-├── .gitignore
+├── README_EN.md
+├── docs/assets/demo/
+│   ├── character-2-source.webp
+│   ├── character-2-orbit.gif
+│   ├── character-2-orbit.mp4
+│   ├── character-2-3d.gif
+│   └── character-2-3d.mp4
 ├── 1_suround_video/
 │   ├── main.py
 │   ├── config.py
-│   ├── requirements.txt
 │   └── VideoSplat_360.json
 ├── 2_colmap/
 │   ├── main.py
 │   ├── core.py
 │   ├── nodes.py
-│   ├── __init__.py
 │   └── requirements.txt
 ├── 3_360brush/
 │   ├── main.py
@@ -82,10 +108,9 @@
 ├── 4_ply_ball_camera/
 │   ├── run.py
 │   ├── config.json
-│   ├── requirements.txt
 │   ├── scripts/
 │   └── src/
-├── 5_XYZ Orbit_Minimax/
+├── 5_XYZ Orbit_VideoModel/
 │   ├── main.py
 │   ├── config.json
 │   ├── workflows/
@@ -93,49 +118,47 @@
 ├── XYZ Orbit_Viewer/
 │   ├── app.py
 │   ├── config.json
-│   ├── package.json
-│   ├── package-lock.json
 │   ├── frontend/
 │   └── tests/
 └── test/
     ├── 5latitude/
     └── VGGSfM/
 </code></pre>
-<p>根目錄直接保留原始專案以數字排序的五個步驟資料夾。每個步驟在自己的目錄中使用 Python 入口，並讀寫各自的 <code>input/</code> 與 <code>output/</code>；這些執行期資料夾已由根目錄 <code>.gitignore</code> 排除。<code>XYZ Orbit_Viewer/</code> 是獨立的本機檢視器。<code>test/5latitude/</code> 是另一組多環相機與 Gaussian 渲染實驗；<code>test/VGGSfM/</code> 是以 VGGSfM 取代 COLMAP 的實驗性相機估計流程，兩者都不在主流程中。</p>
+<p>根目錄保留原始專案以數字排序的步驟設計。每個步驟在自己的資料夾中使用 Python 入口，並讀寫各自的 <code>input/</code> 與 <code>output/</code>。這些執行期資料夾、模型權重、PLY 與一般影片已由 <code>.gitignore</code> 排除；只有 README 使用的壓縮展示素材會加入 Git。</p>
 <h2>核心模組與重要檔案（Key Modules &amp; Files）</h2>
 <table>
 <thead>
 <tr>
 <th>檔案</th>
-<th>職責</th>
-<th>主要關聯</th>
+<th>功能職責</th>
+<th>與其他模組的關聯</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>1_suround_video/main.py</code></td>
-<td>透過 ComfyUI HTTP API 上傳圖片、建立 MiniMax H3 prompt、等待輸出並下載主影片與 mask 影片</td>
-<td>讀取同目錄 <code>config.py</code>；與 <code>VideoSplat_360.json</code> 對應</td>
+<td>上傳圖片、建立 ComfyUI prompt、等待並下載主影片與 mask</td>
+<td>讀取 <code>config.py</code></td>
 </tr>
 <tr>
 <td><code>2_colmap/core.py</code></td>
-<td>抽幀、mask 清理、RGB defringe、COLMAP 執行、重建指標與資料集驗證</td>
+<td>抽幀、mask 清理、RGB defringe、COLMAP 執行及資料驗證</td>
 <td>CLI 與 ComfyUI 節點共用</td>
 </tr>
 <tr>
 <td><code>2_colmap/nodes.py</code></td>
-<td>註冊 <code>Video Splat Build Dataset</code> 與 <code>Video Splat Preview Dataset</code> 兩個 ComfyUI 節點</td>
+<td>註冊 Build Dataset 與 Preview Dataset 節點</td>
 <td>呼叫 <code>core.run_pipeline</code></td>
 </tr>
 <tr>
 <td><code>3_360brush/main.py</code></td>
-<td>驗證 RGBA/COLMAP 資料集、檢查 Brush CLI flags、組合訓練命令、保存 log 與 PLY</td>
+<td>驗證 RGBA/COLMAP 資料集並呼叫 Brush CLI</td>
 <td>讀取 <code>config.py</code></td>
 </tr>
 <tr>
 <td><code>4_ply_ball_camera/src/pipeline.py</code></td>
-<td>協調 PLY 載入、canonical 座標、anchors、三環、十二路徑、mask、影片與驗證</td>
-<td>使用 <code>camera.py</code>、<code>gaussian.py</code>、<code>render.py</code>、<code>source_camera.py</code>、<code>export.py</code></td>
+<td>協調 PLY 載入、canonical 座標、三環、十二路徑、影片及驗證</td>
+<td>使用同目錄 camera、render、gaussian、export 模組</td>
 </tr>
 <tr>
 <td><code>4_ply_ball_camera/src/camera.py</code></td>
@@ -144,63 +167,59 @@
 </tr>
 <tr>
 <td><code>4_ply_ball_camera/src/render.py</code></td>
-<td>以 gsplat/CUDA 渲染 RGB、depth、alpha 與 background-key mask pass</td>
+<td>使用 gsplat/CUDA 渲染 RGB 與 background-key mask</td>
 <td>讀取 Gaussian 及 camera JSON</td>
 </tr>
 <tr>
-<td><code>5_XYZ Orbit_Minimax/main.py</code></td>
-<td>排程 ComfyUI latent refinement、拆幀、配對 camera、建立 COLMAP text model 與 Nerfstudio Brush dataset</td>
+<td><code>5_XYZ Orbit_VideoModel/main.py</code></td>
+<td>排程影片細化、拆幀、配對 camera、建立 COLMAP 與 Brush dataset</td>
 <td>讀取 <code>config.json</code> 與 API workflow</td>
 </tr>
 <tr>
 <td><code>XYZ Orbit_Viewer/app.py</code></td>
-<td>Python 後端：索引路徑資料、提供 manifest/input 靜態檔案與 HTTP Range 回應</td>
-<td>服務 Vite 建置後的前端</td>
-</tr>
-<tr>
-<td><code>XYZ Orbit_Viewer/frontend/src/ply-orbit-viewer.js</code></td>
-<td>Viewer 的 JavaScript 前端：以 Three.js 與 Spark 顯示 Gaussian PLY、相機軌道及最近影格</td>
-<td>使用 camera math 與 path orientation 模組</td>
+<td>索引路徑資料並提供本機 HTTP API 與靜態檔案</td>
+<td>服務建置後的前端</td>
 </tr>
 </tbody>
 </table>
 <h2>安裝與環境需求（Installation &amp; Requirements）</h2>
 <ol>
-<li>安裝 Python 3.9 以上版本。程式使用 <code>argparse.BooleanOptionalAction</code>、內建泛型型別與 <code>Path</code> 新式 API；原始檔未記錄實際測試的 Python 小版本。</li>
-<li>安裝 FFmpeg 與 FFprobe，並將兩者加入 <code>PATH</code>。第二與第五階段會直接呼叫這兩個命令。</li>
-<li>安裝 CUDA 版 COLMAP，將執行檔加入 <code>PATH</code>，或設定 <code>VIDEOSPLAT_COLMAP</code>。第二階段的 Python 套件可用 <code>python -m pip install -r 2_colmap/requirements.txt</code> 安裝。</li>
-<li>準備支援本專案 flags 的 Brush CLI，並加入 <code>PATH</code> 或設定 <code>VIDEOSPLAT_BRUSH_EXE</code>。第四階段另需執行 <code>python -m pip install -r 4_ply_ball_camera/requirements.txt</code>，且 <code>run.py</code> 目前要求 Windows、CUDA compiler 與 Visual Studio 2022 C++ Build Tools。</li>
-<li>為第一與第五階段啟動 ComfyUI。工作流實際使用 MiniMax H3、BiRefNet、SAM3、Sage Attention，以及第五階段的 MiniMax H3 latent encode/noise/decode 節點；所需模型檔名可在 <code>1_suround_video/config.py</code> 與兩個 workflow JSON 中查到。ComfyUI、custom nodes 與模型的精確版本尚未定義。</li>
+<li>安裝 Python 3.9 以上版本。原始檔未記錄實際測試的 Python 小版本。</li>
+<li>安裝 FFmpeg 與 FFprobe，並將兩者加入 <code>PATH</code>。</li>
+<li>安裝 CUDA 版 COLMAP，加入 <code>PATH</code> 或設定 <code>VIDEOSPLAT_COLMAP</code>。第二步套件使用 <code>python -m pip install -r 2_colmap/requirements.txt</code> 安裝。</li>
+<li>準備支援專案所需 flags 的 Brush CLI，加入 <code>PATH</code> 或設定 <code>VIDEOSPLAT_BRUSH_EXE</code>。</li>
+<li>第四步執行 <code>python -m pip install -r 4_ply_ball_camera/requirements.txt</code>，並準備 CUDA compiler 與 Visual Studio 2022 C++ Build Tools。</li>
 </ol>
-<p>第一階段只需額外安裝 <code>python -m pip install -r 1_suround_video/requirements.txt</code>。<code>XYZ Orbit_Viewer</code> 的 Python 後端只使用標準函式庫；JavaScript 前端依賴鎖定於 <code>XYZ Orbit_Viewer/package-lock.json</code>，建置命令是 <code>npm ci</code> 後執行 <code>npm run build</code>。Node.js 的最低版本尚未在專案檔案中定義。</p>
+<p>第一步的額外 Python 相依套件位於 <code>1_suround_video/requirements.txt</code>。第一步與第五步需要已啟動的 ComfyUI、對應影片模型工作流及工作流所用的 custom nodes。ComfyUI、custom nodes 與模型的精確版本尚未定義。</p>
+<p>Viewer 的 Python 後端只使用標準函式庫。前端套件鎖定於 <code>XYZ Orbit_Viewer/package-lock.json</code>，使用 <code>npm ci</code> 與 <code>npm run build</code> 建置；Node.js 的最低版本尚未定義。</p>
 <h2>使用方式（How to Use）</h2>
-<p>以下命令均從 repo 根目錄執行。先為每個階段建立其 <code>input/</code>，再把前一階段的必要輸出複製或連結到下一階段；程式目前不會自動跨資料夾搬移產物。</p>
+<p>以下命令均從 repo 根目錄執行。每一步的輸入與輸出仍保留在該步驟自己的資料夾中。</p>
 <ol>
-<li>將人物圖片放入 <code>1_suround_video/input/</code>，確認 ComfyUI 位於 <code>http://127.0.0.1:8188</code>，執行 <code>python 1_suround_video/main.py</code>。每位人物會得到主影片、mask 影片及選配的來源圖副本。</li>
-<li>將每組主影片與檔名含 <code>mask</code> 的影片放在 <code>2_colmap/input/&lt;組別&gt;/</code>，執行 <code>python 2_colmap/main.py</code>。成功輸出位於 <code>2_colmap/output/&lt;組別&gt;/brush_dataset_rgba_clean/</code>。</li>
-<li>將上一步資料集放到 <code>3_360brush/input/&lt;組別&gt;/brush_dataset_rgba_clean/</code>，設定 Brush CLI 後執行 <code>python 3_360brush/main.py</code>。輸出為 <code>3_360brush/output/&lt;組別&gt;/&lt;組別&gt;.ply</code>。</li>
-<li>將單一 PLY、對應 COLMAP text model 與 registered images 放入 <code>4_ply_ball_camera/input/</code>；多人物時使用 <code>input/&lt;組別&gt;/</code>。執行 <code>python 4_ply_ball_camera/run.py</code>。完成後可執行 <code>python 4_ply_ball_camera/scripts/validate_project.py</code> 再驗證。</li>
-<li>將第四階段的路徑影片放入 <code>5_XYZ Orbit_Minimax/input/All/</code>、camera paths 放入 <code>5_XYZ Orbit_Minimax/input/paths/</code>，並依 <code>config.json</code> 放置參考圖。先執行 <code>python "5_XYZ Orbit_Minimax/main.py" --check</code>，再執行 <code>python "5_XYZ Orbit_Minimax/main.py"</code>。</li>
+<li>將人物圖片放入 <code>1_suround_video/input/</code>，確認 ComfyUI 已啟動，執行 <code>python 1_suround_video/main.py</code>。</li>
+<li>將每組主影片與檔名含 <code>mask</code> 的影片放入 <code>2_colmap/input/&lt;組別&gt;/</code>，執行 <code>python 2_colmap/main.py</code>。</li>
+<li>將前一步資料集放入 <code>3_360brush/input/&lt;組別&gt;/brush_dataset_rgba_clean/</code>，執行 <code>python 3_360brush/main.py</code>。</li>
+<li>將 PLY、對應 COLMAP text model 與 registered images 放入 <code>4_ply_ball_camera/input/</code> 或 <code>input/&lt;組別&gt;/</code>，執行 <code>python 4_ply_ball_camera/run.py</code>。</li>
+<li>將第四步的路徑影片與 camera paths 放入 <code>5_XYZ Orbit_VideoModel/input/</code> 對應位置，先執行 <code>python "5_XYZ Orbit_VideoModel/main.py" --check</code>，再執行 <code>python "5_XYZ Orbit_VideoModel/main.py"</code>。</li>
 </ol>
-<p>Viewer 需要第四階段輸出的 <code>path_graph.json</code>、<code>anchors/</code>、<code>paths/</code> 及 PLY 放在 <code>XYZ Orbit_Viewer/input/</code>。先在 <code>XYZ Orbit_Viewer/</code> 執行 <code>npm ci</code> 與 <code>npm run build</code>，再從 repo 根目錄執行 <code>python "XYZ Orbit_Viewer/app.py"</code>；預設網址為 <code>http://127.0.0.1:8000/</code>。</p>
+<p>Viewer 需要第四步輸出的 <code>path_graph.json</code>、<code>anchors/</code>、<code>paths/</code> 及 PLY 放在 <code>XYZ Orbit_Viewer/input/</code>。在 Viewer 資料夾執行 <code>npm ci</code> 與 <code>npm run build</code>，再從根目錄執行 <code>python "XYZ Orbit_Viewer/app.py"</code>。預設網址是 <code>http://127.0.0.1:8000/</code>。</p>
 <h2>設定說明（Configuration）</h2>
 <table>
 <thead>
 <tr>
 <th>位置</th>
 <th>可調整項目</th>
-<th>行為影響</th>
+<th>對系統行為的影響</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>1_suround_video/config.py</code></td>
-<td>ComfyUI URL、模型檔名、LoRA/Sage、seed、尺寸、時長、SAM3 與 prompt</td>
-<td>控制初始環繞影片和 mask 生成</td>
+<td>ComfyUI URL、工作流模型檔、seed、尺寸、時長、遮罩及 prompt</td>
+<td>控制初始環繞影片與 mask 生成</td>
 </tr>
 <tr>
 <td><code>2_colmap/core.py</code> 的 <code>PipelineConfig</code></td>
-<td>最大 192 幀、mask threshold、erosion、defringe、最低註冊率、相機弧與最大步進</td>
+<td>最大影格、mask threshold、erosion、defringe、註冊率及相機弧</td>
 <td>控制影像清理與 COLMAP 驗證門檻</td>
 </tr>
 <tr>
@@ -210,8 +229,8 @@
 </tr>
 <tr>
 <td><code>3_360brush/config.py</code></td>
-<td>Brush steps、splat 上限、解析度、SH degree、alpha、growth、eval 與批次策略</td>
-<td>控制初始 3DGS 訓練及輸出</td>
+<td>Brush steps、splat 上限、解析度、SH、alpha、growth 及批次策略</td>
+<td>控制初始 3DGS 訓練</td>
 </tr>
 <tr>
 <td><code>VIDEOSPLAT_BRUSH_EXE</code></td>
@@ -220,40 +239,40 @@
 </tr>
 <tr>
 <td><code>4_ply_ball_camera/config.json</code></td>
-<td>每度影格、render/mask、PLY scale/opacity/SH、near/far 與驗證 tolerance</td>
-<td>控制固定相機路徑、gsplat 渲染及 mask</td>
+<td>影格間隔、render、mask、PLY scale、near/far 與 tolerance</td>
+<td>控制固定相機與 gsplat 渲染</td>
 </tr>
 <tr>
-<td><code>5_XYZ Orbit_Minimax/config.json</code></td>
-<td>ComfyUI URL、輸入路徑、workflow、90/91 幀、seed、timeout 與節點 ID</td>
-<td>控制第二階段生成及資料集格式</td>
+<td><code>5_XYZ Orbit_VideoModel/config.json</code></td>
+<td>ComfyUI URL、輸入路徑、workflow、影格數、seed、timeout 與節點 ID</td>
+<td>控制第二階段生成與資料集輸出</td>
 </tr>
 <tr>
 <td><code>XYZ Orbit_Viewer/config.json</code></td>
-<td>拖曳角度、相機點、軌道、模型比例、座標軸、視角距離與顏色</td>
-<td>儲存後重新整理 Viewer 即可套用</td>
+<td>拖曳角度、相機點、軌道、模型比例、座標軸及視角距離</td>
+<td>控制 Viewer 顯示</td>
 </tr>
 </tbody>
 </table>
-<p>專案目前沒有 <code>.env</code> 設定檔，也沒有可確認的必要密鑰或雲端 API token。第一與第五階段只連線到設定中的本機 ComfyUI HTTP URL。</p>
+<p>專案目前沒有必要的 <code>.env</code> 設定，也沒有可確認的雲端 API token。第一步與第五步使用設定中的 ComfyUI HTTP URL。</p>
 <h2>開發者指南（Developer Guide）</h2>
 <ol>
-<li>先讀根目錄 README 的三張圖，再讀各階段的 <code>main.py</code> 入口與同目錄設定檔。</li>
-<li>追查資料格式時，依序閱讀 <code>2_colmap/core.py</code>、<code>4_ply_ball_camera/src/source_camera.py</code>、<code>camera.py</code>、<code>pipeline.py</code>、<code>5_XYZ Orbit_Minimax/main.py</code>。</li>
-<li>修改相機 convention 時，必須同步檢查 COLMAP/OpenCV 的 <code>+X right, +Y down, +Z forward</code>、Nerfstudio/OpenGL 轉換，以及 JSON 中的 W2C/C2W；不可只改單一模組。</li>
-<li>修改第四階段 render 或 mask 邏輯後，執行 <code>scripts/validate_project.py</code>，並檢查 <code>validation.json</code>、Front 重投影及 contact sheets。</li>
-<li>修改第五階段 workflow 節點 ID 時，同步更新 <code>config.json.workflow_nodes</code>；修改 Viewer 前端後執行 <code>npm test</code>、<code>npm run build</code> 與 Python 後端測試。</li>
+<li>先依數字順序閱讀五個步驟的 <code>main.py</code> 或 <code>run.py</code>，再閱讀同目錄設定檔。</li>
+<li>追查資料格式時，依序閱讀 <code>2_colmap/core.py</code>、<code>4_ply_ball_camera/src/source_camera.py</code>、<code>camera.py</code>、<code>pipeline.py</code> 與 <code>5_XYZ Orbit_VideoModel/main.py</code>。</li>
+<li>修改相機 convention 時，必須同步檢查 COLMAP/OpenCV、Nerfstudio/OpenGL 轉換及 JSON 中的 W2C/C2W。</li>
+<li>修改第四步的 render 或 mask 邏輯後，執行 <code>4_ply_ball_camera/scripts/validate_project.py</code> 並檢查 <code>validation.json</code>。</li>
+<li>修改第五步的 workflow 節點 ID 時，同步更新 <code>config.json.workflow_nodes</code>；修改 Viewer 前端後執行前端與 Python 測試。</li>
 </ol>
-<p>新增資料處理階段時，應維持目前的檔案契約，並在輸出中保存可追溯 metadata；若改變 camera JSON、<code>path_graph.json</code> 或 <code>transforms.json</code> 結構，需同時更新第五階段與 Viewer 的讀取端。</p>
+<p>新增處理步驟時應維持現有檔案契約，並在輸出中保存可追溯 metadata。若改變 camera JSON、<code>path_graph.json</code> 或 <code>transforms.json</code> 結構，需同步更新下游資料集產生器與 Viewer。</p>
 <h2>已知限制與待辦事項（Limitations &amp; TODO）</h2>
 <ul>
-<li>授權條款尚未定義；在加入明確 LICENSE 前，第三方無法判定程式碼的再使用權利。</li>
-<li>端到端自動化測試尚未定義。現有測試只涵蓋第五階段部分相機轉換，以及 Viewer 的資料索引、HTTP server 與 path orientation。</li>
-<li>第三階段依賴支援特定 flags 的 Brush CLI；可取得的版本、建置方式與相容 commit 尚未在專案中定義。</li>
-<li>第四階段啟動器目前是 Windows 專用，會尋找 Visual Studio 2022，並預設 <code>TORCH_CUDA_ARCH_LIST=12.0</code>；其他平台的啟動方式尚未定義。</li>
-<li>第五階段輸出的 COLMAP <code>points3D.txt</code> 為空，因為該流程沿用已知相機姿態而不建立或虛構 3D 特徵點。</li>
+<li>授權條款尚未定義；加入明確 LICENSE 前，第三方無法判定程式碼的再使用權利。</li>
+<li>端到端自動化測試尚未定義。現有測試只涵蓋第五步部分相機轉換與 Viewer 的資料索引、HTTP server、path orientation。</li>
+<li>第三步依賴支援特定 flags 的 Brush CLI；相容版本與建置方式尚未定義。</li>
+<li>第四步啟動器目前是 Windows 專用，會尋找 Visual Studio 2022，並預設 <code>TORCH_CUDA_ARCH_LIST=12.0</code>。</li>
+<li>第五步輸出的 COLMAP <code>points3D.txt</code> 為空，因為該流程沿用已知相機姿態而不建立或虛構 3D 特徵點。</li>
 </ul>
-<p>程式碼中未發現明確的 <code>TODO</code>、<code>FIXME</code> 或 <code>XXX</code> 標記；以上限制是從實際入口、設定、驗證與測試範圍整理出的未完成事項。</p>
+<p>程式碼中未發現明確的 <code>TODO</code>、<code>FIXME</code> 或 <code>XXX</code> 標記；以上項目來自實際入口、設定、驗證與測試範圍。</p>
 <h2>補充說明（Notes）</h2>
-<p>研究計畫將本流程定位為「生成式多視角影片結合傳統三維重建」的方法，並規劃與 TripoSplat、Hunyuan3D、TRELLIS 等直接式 Image-to-3D 方法比較多視角一致性、幾何正確性、外觀保持、重建品質、運算成本與可編輯性。比較實驗、Gaussian-to-Mesh、骨架綁定與角色動畫驗證尚未實作在此 repo 的主流程中。</p>
-<p>原始研究計畫、人物影像、影片、模型權重、PLY、COLMAP database、Brush 訓練輸出及其他大型實驗產物未納入 repo。這些資料可能含個人內容或超出一般 GitHub 儲存容量；執行時應放在已被 <code>.gitignore</code> 排除的 <code>input/</code>、<code>output/</code> 或模型目錄中。</p>
+<p>研究計畫將本流程定位為「生成式多視角影片結合傳統三維重建」的方法，並規劃與直接式 Image-to-3D 方法比較多視角一致性、幾何正確性、外觀保持、重建品質、運算成本與可編輯性。比較實驗、Gaussian-to-Mesh、骨架綁定與角色動畫驗證尚未實作在此 repo 的主流程中。</p>
+<p>原始研究計畫、其他人物影像、模型權重、完整 PLY、COLMAP database、Brush 訓練輸出與大型實驗產物未納入 repo。README 中的角色 2 展示素材是為 GitHub 檢視而縮放與壓縮的副本，不是訓練輸入或完整模型檔。</p>
