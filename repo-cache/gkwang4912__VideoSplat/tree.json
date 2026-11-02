@@ -4,180 +4,6 @@
   "children": [
     {
       "type": "dir",
-      "name": "1_suround_video",
-      "children": [
-        {
-          "type": "file",
-          "name": "config.py"
-        },
-        {
-          "type": "file",
-          "name": "main.py"
-        },
-        {
-          "type": "file",
-          "name": "requirements.txt"
-        },
-        {
-          "type": "file",
-          "name": "VideoSplat_360.json"
-        }
-      ]
-    },
-    {
-      "type": "dir",
-      "name": "2_colmap",
-      "children": [
-        {
-          "type": "file",
-          "name": "__init__.py"
-        },
-        {
-          "type": "file",
-          "name": "core.py"
-        },
-        {
-          "type": "file",
-          "name": "main.py"
-        },
-        {
-          "type": "file",
-          "name": "nodes.py"
-        },
-        {
-          "type": "file",
-          "name": "README.md"
-        },
-        {
-          "type": "file",
-          "name": "requirements.txt"
-        }
-      ]
-    },
-    {
-      "type": "dir",
-      "name": "3_360brush",
-      "children": [
-        {
-          "type": "file",
-          "name": "config.py"
-        },
-        {
-          "type": "file",
-          "name": "main.py"
-        }
-      ]
-    },
-    {
-      "type": "dir",
-      "name": "4_ply_ball_camera",
-      "children": [
-        {
-          "type": "dir",
-          "name": "scripts",
-          "children": [
-            {
-              "type": "file",
-              "name": "validate_project.py"
-            }
-          ]
-        },
-        {
-          "type": "dir",
-          "name": "src",
-          "children": [
-            {
-              "type": "file",
-              "name": "__init__.py"
-            },
-            {
-              "type": "file",
-              "name": "camera.py"
-            },
-            {
-              "type": "file",
-              "name": "export.py"
-            },
-            {
-              "type": "file",
-              "name": "gaussian.py"
-            },
-            {
-              "type": "file",
-              "name": "pipeline.py"
-            },
-            {
-              "type": "file",
-              "name": "render.py"
-            },
-            {
-              "type": "file",
-              "name": "source_camera.py"
-            }
-          ]
-        },
-        {
-          "type": "file",
-          "name": "config.json"
-        },
-        {
-          "type": "file",
-          "name": "README.md"
-        },
-        {
-          "type": "file",
-          "name": "requirements.txt"
-        },
-        {
-          "type": "file",
-          "name": "run.py"
-        }
-      ]
-    },
-    {
-      "type": "dir",
-      "name": "5_XYZ Orbit_VideoModel",
-      "children": [
-        {
-          "type": "dir",
-          "name": "tests",
-          "children": [
-            {
-              "type": "file",
-              "name": "test_orbit_pipeline.py"
-            }
-          ]
-        },
-        {
-          "type": "dir",
-          "name": "workflows",
-          "children": [
-            {
-              "type": "file",
-              "name": "video_model_latent_refine.json"
-            },
-            {
-              "type": "file",
-              "name": "video_model_latent_refine_api.json"
-            }
-          ]
-        },
-        {
-          "type": "file",
-          "name": "config.json"
-        },
-        {
-          "type": "file",
-          "name": "main.py"
-        },
-        {
-          "type": "file",
-          "name": "README.md"
-        }
-      ]
-    },
-    {
-      "type": "dir",
       "name": "docs",
       "children": [
         {
@@ -188,6 +14,40 @@
               "type": "dir",
               "name": "demo",
               "children": [
+                {
+                  "type": "dir",
+                  "name": "v2",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "gaussian_model_orbit.gif"
+                    },
+                    {
+                      "type": "file",
+                      "name": "gaussian_model_orbit.mp4"
+                    },
+                    {
+                      "type": "file",
+                      "name": "generated_character_video.gif"
+                    },
+                    {
+                      "type": "file",
+                      "name": "generated_character_video.mp4"
+                    },
+                    {
+                      "type": "file",
+                      "name": "pose_control_debug.png"
+                    },
+                    {
+                      "type": "file",
+                      "name": "pose_control_video_175.gif"
+                    },
+                    {
+                      "type": "file",
+                      "name": "pose_control_video_175.mp4"
+                    }
+                  ]
+                },
                 {
                   "type": "file",
                   "name": "character-2-3d.gif"
@@ -211,70 +71,206 @@
               ]
             }
           ]
+        },
+        {
+          "type": "dir",
+          "name": "versions",
+          "children": [
+            {
+              "type": "file",
+              "name": "MIGRATION_V1_TO_V2.md"
+            },
+            {
+              "type": "file",
+              "name": "README_V1.md"
+            },
+            {
+              "type": "file",
+              "name": "README_V1_EN.md"
+            },
+            {
+              "type": "file",
+              "name": "RELEASE_NOTES_V1.md"
+            },
+            {
+              "type": "file",
+              "name": "RELEASE_NOTES_V2.md"
+            },
+            {
+              "type": "file",
+              "name": "V1.md"
+            },
+            {
+              "type": "file",
+              "name": "V2.md"
+            },
+            {
+              "type": "file",
+              "name": "V2_ARCHITECTURE.md"
+            },
+            {
+              "type": "file",
+              "name": "VERSIONING.md"
+            }
+          ]
         }
       ]
     },
     {
       "type": "dir",
-      "name": "test",
+      "name": "src",
       "children": [
         {
           "type": "dir",
-          "name": "5latitude",
+          "name": "1_360_skeleton",
           "children": [
             {
               "type": "dir",
-              "name": "scripts",
+              "name": "models",
               "children": [
                 {
                   "type": "file",
-                  "name": "validate_project.py"
+                  "name": "README.md"
                 }
               ]
             },
             {
               "type": "dir",
-              "name": "src",
+              "name": "third_party",
               "children": [
                 {
-                  "type": "file",
-                  "name": "__init__.py"
-                },
-                {
-                  "type": "file",
-                  "name": "project.py"
-                },
-                {
-                  "type": "file",
-                  "name": "validation.py"
+                  "type": "dir",
+                  "name": "comfyui_controlnet_aux",
+                  "children": [
+                    {
+                      "type": "dir",
+                      "name": "src",
+                      "children": [
+                        {
+                          "type": "dir",
+                          "name": "custom_controlnet_aux",
+                          "children": [
+                            {
+                              "type": "dir",
+                              "name": "dwpose",
+                              "children": [
+                                {
+                                  "type": "dir",
+                                  "name": "dw_onnx",
+                                  "children": [
+                                    {
+                                      "type": "file",
+                                      "name": "__init__.py"
+                                    },
+                                    {
+                                      "type": "file",
+                                      "name": "cv_ox_det.py"
+                                    },
+                                    {
+                                      "type": "file",
+                                      "name": "cv_ox_pose.py"
+                                    },
+                                    {
+                                      "type": "file",
+                                      "name": "cv_ox_yolo_nas.py"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "dir",
+                                  "name": "dw_torchscript",
+                                  "children": [
+                                    {
+                                      "type": "file",
+                                      "name": "__init__.py"
+                                    },
+                                    {
+                                      "type": "file",
+                                      "name": "jit_det.py"
+                                    },
+                                    {
+                                      "type": "file",
+                                      "name": "jit_pose.py"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "file",
+                                  "name": "__init__.py"
+                                },
+                                {
+                                  "type": "file",
+                                  "name": "animalpose.py"
+                                },
+                                {
+                                  "type": "file",
+                                  "name": "body.py"
+                                },
+                                {
+                                  "type": "file",
+                                  "name": "face.py"
+                                },
+                                {
+                                  "type": "file",
+                                  "name": "hand.py"
+                                },
+                                {
+                                  "type": "file",
+                                  "name": "LICENSE"
+                                },
+                                {
+                                  "type": "file",
+                                  "name": "model.py"
+                                },
+                                {
+                                  "type": "file",
+                                  "name": "types.py"
+                                },
+                                {
+                                  "type": "file",
+                                  "name": "util.py"
+                                },
+                                {
+                                  "type": "file",
+                                  "name": "wholebody.py"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "file",
+                              "name": "__init__.py"
+                            },
+                            {
+                              "type": "file",
+                              "name": "util.py"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "file",
+                          "name": "__init__.py"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "file",
+                      "name": "LICENSE.txt"
+                    },
+                    {
+                      "type": "file",
+                      "name": "requirements.txt"
+                    }
+                  ]
                 }
               ]
             },
-            {
-              "type": "file",
-              "name": "config.json"
-            },
-            {
-              "type": "file",
-              "name": "README.md"
-            },
-            {
-              "type": "file",
-              "name": "requirements.txt"
-            },
-            {
-              "type": "file",
-              "name": "run.py"
-            }
-          ]
-        },
-        {
-          "type": "dir",
-          "name": "VGGSfM",
-          "children": [
             {
               "type": "file",
               "name": "config.py"
+            },
+            {
+              "type": "file",
+              "name": "dwpose_backend.py"
             },
             {
               "type": "file",
@@ -283,14 +279,62 @@
             {
               "type": "file",
               "name": "README.md"
+            }
+          ]
+        },
+        {
+          "type": "dir",
+          "name": "2_suround_video",
+          "children": [
+            {
+              "type": "dir",
+              "name": "workflows",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "VideoSplat_2.json"
+                },
+                {
+                  "type": "file",
+                  "name": "VideoSplat_2_api.json"
+                }
+              ]
             },
             {
               "type": "file",
-              "name": "run_wsl.sh"
+              "name": "config.py"
             },
             {
               "type": "file",
-              "name": "setup_wsl.sh"
+              "name": "main.py"
+            }
+          ]
+        },
+        {
+          "type": "dir",
+          "name": "3_virtual_camera",
+          "children": [
+            {
+              "type": "file",
+              "name": "config.py"
+            },
+            {
+              "type": "file",
+              "name": "main.py"
+            }
+          ]
+        },
+        {
+          "type": "dir",
+          "name": "4_360brush",
+          "children": [
+            {
+              "type": "file",
+              "name": "config.py"
+            },
+            {
+              "type": "file",
+              "name": "main.py"
             }
           ]
         }
@@ -298,93 +342,175 @@
     },
     {
       "type": "dir",
-      "name": "XYZ Orbit_Viewer",
+      "name": "test_file",
       "children": [
         {
           "type": "dir",
-          "name": "frontend",
+          "name": "1080",
+          "children": [
+            {
+              "type": "file",
+              "name": "video_latent_refine_00002_.mp4"
+            },
+            {
+              "type": "file",
+              "name": "video_latent_refine_00003_.mp4"
+            },
+            {
+              "type": "file",
+              "name": "video_latent_refine_00004_.mp4"
+            }
+          ]
+        },
+        {
+          "type": "dir",
+          "name": "Avater",
           "children": [
             {
               "type": "dir",
-              "name": "src",
+              "name": "black",
               "children": [
                 {
                   "type": "file",
-                  "name": "camera-math.js"
+                  "name": "1.png"
                 },
                 {
                   "type": "file",
-                  "name": "image-orbit-controller.js"
+                  "name": "2.png"
                 },
                 {
                   "type": "file",
-                  "name": "labels.js"
+                  "name": "3.png"
                 },
                 {
                   "type": "file",
-                  "name": "main.js"
+                  "name": "4.png"
                 },
                 {
                   "type": "file",
-                  "name": "path-orientation.js"
-                },
-                {
-                  "type": "file",
-                  "name": "ply-orbit-viewer.js"
-                },
-                {
-                  "type": "file",
-                  "name": "styles.css"
+                  "name": "5.png"
                 }
               ]
             },
             {
-              "type": "file",
-              "name": "index.html"
+              "type": "dir",
+              "name": "white",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "1.png"
+                },
+                {
+                  "type": "file",
+                  "name": "2.png"
+                },
+                {
+                  "type": "file",
+                  "name": "3.png"
+                },
+                {
+                  "type": "file",
+                  "name": "4.png"
+                }
+              ]
             }
           ]
         },
         {
           "type": "dir",
-          "name": "tests",
+          "name": "suround",
           "children": [
             {
-              "type": "file",
-              "name": "path-orientation.test.mjs"
+              "type": "dir",
+              "name": "1",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "mask.mp4"
+                },
+                {
+                  "type": "file",
+                  "name": "source.png"
+                },
+                {
+                  "type": "file",
+                  "name": "video.mp4"
+                }
+              ]
             },
             {
-              "type": "file",
-              "name": "test_app.py"
+              "type": "dir",
+              "name": "2",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "mask.mp4"
+                },
+                {
+                  "type": "file",
+                  "name": "source.png"
+                },
+                {
+                  "type": "file",
+                  "name": "video.mp4"
+                }
+              ]
+            },
+            {
+              "type": "dir",
+              "name": "3",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "mask.mp4"
+                },
+                {
+                  "type": "file",
+                  "name": "source.png"
+                },
+                {
+                  "type": "file",
+                  "name": "video.mp4"
+                }
+              ]
+            },
+            {
+              "type": "dir",
+              "name": "4",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "mask.mp4"
+                },
+                {
+                  "type": "file",
+                  "name": "souce.png"
+                },
+                {
+                  "type": "file",
+                  "name": "video.mp4"
+                }
+              ]
+            },
+            {
+              "type": "dir",
+              "name": "5",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "mask.mp4"
+                },
+                {
+                  "type": "file",
+                  "name": "source.png"
+                },
+                {
+                  "type": "file",
+                  "name": "video.mp4"
+                }
+              ]
             }
           ]
-        },
-        {
-          "type": "file",
-          "name": ".gitignore"
-        },
-        {
-          "type": "file",
-          "name": "app.py"
-        },
-        {
-          "type": "file",
-          "name": "config.json"
-        },
-        {
-          "type": "file",
-          "name": "package-lock.json"
-        },
-        {
-          "type": "file",
-          "name": "package.json"
-        },
-        {
-          "type": "file",
-          "name": "README.md"
-        },
-        {
-          "type": "file",
-          "name": "vite.config.js"
         }
       ]
     },
@@ -398,11 +524,19 @@
     },
     {
       "type": "file",
+      "name": "CHANGELOG.md"
+    },
+    {
+      "type": "file",
       "name": "README.md"
     },
     {
       "type": "file",
       "name": "README_EN.md"
+    },
+    {
+      "type": "file",
+      "name": "requirements.txt"
     }
   ]
 }
