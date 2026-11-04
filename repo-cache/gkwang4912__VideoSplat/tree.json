@@ -312,7 +312,35 @@
         },
         {
           "type": "dir",
-          "name": "3_virtual_camera",
+          "name": "3_remove_background",
+          "children": [
+            {
+              "type": "dir",
+              "name": "workflows",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "Sam3_remove_background.json"
+                },
+                {
+                  "type": "file",
+                  "name": "Sam3_remove_background_api.json"
+                }
+              ]
+            },
+            {
+              "type": "file",
+              "name": "config.py"
+            },
+            {
+              "type": "file",
+              "name": "main.py"
+            }
+          ]
+        },
+        {
+          "type": "dir",
+          "name": "4_virtual_camera",
           "children": [
             {
               "type": "file",
@@ -326,7 +354,7 @@
         },
         {
           "type": "dir",
-          "name": "4_360brush",
+          "name": "5_360brush",
           "children": [
             {
               "type": "file",
@@ -344,24 +372,6 @@
       "type": "dir",
       "name": "test_file",
       "children": [
-        {
-          "type": "dir",
-          "name": "1080",
-          "children": [
-            {
-              "type": "file",
-              "name": "video_latent_refine_00002_.mp4"
-            },
-            {
-              "type": "file",
-              "name": "video_latent_refine_00003_.mp4"
-            },
-            {
-              "type": "file",
-              "name": "video_latent_refine_00004_.mp4"
-            }
-          ]
-        },
         {
           "type": "dir",
           "name": "Avater",
@@ -411,6 +421,10 @@
                 {
                   "type": "file",
                   "name": "4.png"
+                },
+                {
+                  "type": "file",
+                  "name": "5.png"
                 }
               ]
             }
@@ -426,15 +440,7 @@
               "children": [
                 {
                   "type": "file",
-                  "name": "mask.mp4"
-                },
-                {
-                  "type": "file",
                   "name": "source.png"
-                },
-                {
-                  "type": "file",
-                  "name": "video.mp4"
                 }
               ]
             },
@@ -444,15 +450,7 @@
               "children": [
                 {
                   "type": "file",
-                  "name": "mask.mp4"
-                },
-                {
-                  "type": "file",
                   "name": "source.png"
-                },
-                {
-                  "type": "file",
-                  "name": "video.mp4"
                 }
               ]
             },
@@ -462,15 +460,7 @@
               "children": [
                 {
                   "type": "file",
-                  "name": "mask.mp4"
-                },
-                {
-                  "type": "file",
                   "name": "source.png"
-                },
-                {
-                  "type": "file",
-                  "name": "video.mp4"
                 }
               ]
             },
@@ -480,15 +470,7 @@
               "children": [
                 {
                   "type": "file",
-                  "name": "mask.mp4"
-                },
-                {
-                  "type": "file",
                   "name": "souce.png"
-                },
-                {
-                  "type": "file",
-                  "name": "video.mp4"
                 }
               ]
             },
@@ -498,19 +480,33 @@
               "children": [
                 {
                   "type": "file",
-                  "name": "mask.mp4"
-                },
-                {
-                  "type": "file",
                   "name": "source.png"
-                },
-                {
-                  "type": "file",
-                  "name": "video.mp4"
                 }
               ]
             }
           ]
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "tools",
+      "children": [
+        {
+          "type": "file",
+          "name": "render_gaussian_orbit.py"
+        },
+        {
+          "type": "file",
+          "name": "render_gaussian_reference.md"
+        },
+        {
+          "type": "file",
+          "name": "render_gaussian_reference.py"
+        },
+        {
+          "type": "file",
+          "name": "requirements-renderer.txt"
         }
       ]
     },
@@ -525,6 +521,10 @@
     {
       "type": "file",
       "name": "CHANGELOG.md"
+    },
+    {
+      "type": "file",
+      "name": "gitignore.txt"
     },
     {
       "type": "file",
